@@ -34,8 +34,8 @@ internal/
   worker/       # polling worker, lease claim loop
   config/       # env parsing
 docs/
-  spec.md
-  plan.md
+  spec-v1.md
+  plan-v1.md
   decisions/    # ADRs
 ```
 

@@ -2,11 +2,11 @@
 
 Servico autonomo de notificacoes, dominio-agnostico, leve para execucao em ambiente local com Docker. V1 simula envio de e-mail; a proxima evolucao adiciona SMS tambem simulado.
 
-- **Por que existe** — [docs/spec.md](docs/spec.md)
+- **Por que existe** — [docs/spec-v1.md](docs/spec-v1.md)
 - **Por que foi construido assim** — [docs/decisions/](docs/decisions/)
-- **Como foi construido** — [docs/plan.md](docs/plan.md)
+- **Como foi construido** — [docs/plan-v1.md](docs/plan-v1.md)
 
-> **Status: planejamento concluido.** Nenhum codigo foi escrito ainda. Veja [o roadmap](docs/plan.md#fases-de-implementacao) para a ordem exata de implementacao.
+> **Status: V1 implementada.** 130 testes passam, Docker compose sobe com smoke test end-to-end (create → worker → SENT). Veja [o roadmap](docs/plan-v1.md#fases-de-implementacao) para o status por etapa.
 
 ---
 

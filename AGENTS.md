@@ -5,8 +5,8 @@ Servico autonomo de notificacoes, dominio-agnostico. Go, PostgreSQL proprio, doi
 Leia estes antes de qualquer coisa. Sao o contrato, nao contexto.
 
 @README.md
-@docs/spec.md
-@docs/plan.md
+@docs/spec-v1.md
+@docs/plan-v1.md
 @docs/decisions/
 
 ADRs individuais em `docs/decisions/adr-NNNN-*.md`. Abra o ADR que a tarefa toca; nao raciocine sobre uma decisao a partir do resumo de uma linha no indice.
@@ -32,7 +32,7 @@ Nao sao preferencias de estilo. Violar uma e um defeito, e cada uma rastreia um 
 
 **Teste primeiro, sempre.** Escreva o teste, rode, veja falhar pela razao certa, depois implemente. Um teste que passou de primeira nao prova nada ate voce ver ele falhar.
 
-**Siga a ordem do plano.** `docs/plan.md` sequencia o trabalho para que cada fase seja independentemente verificavel. A Fase 3 (Persistencia) e a de maior risco — se os testes de claim atomico nao forem convincentes, pare e corrija o design antes de construir em cima.
+**Siga a ordem do plano.** `docs/plan-v1.md` sequencia o trabalho para que cada fase seja independentemente verificavel. A Fase 3 (Persistencia) e a de maior risco — se os testes de claim atomico nao forem convincentes, pare e corrija o design antes de construir em cima.
 
 **Marque o checkbox no commit que o conquista.** Um checkbox em `docs/plan.md#fases-de-implementacao` e marcado quando a condicao **Done when** daquela fase foi *observada*, nao quando o codigo foi escrito. Nunca marque adiantado.
 
@@ -86,4 +86,4 @@ Se uma tarefa parece precisar de um destes, pare e pergunte. E mais provavel que
 
 ## Estado atual
 
-Fases 1-7 implementadas: scaffold, dominio, persistencia, HTTP API, EmailProvider fake, worker, e Docker final. 130 testes passam, 595 com `-race -count=5`. Docker compose sobe com `/health` funcional e smoke test end-to-end passa (create -> worker -> SENT). Veja [o roadmap](docs/plan.md#fases-de-implementacao) para o status por etapa.
+Fases 1-7 implementadas: scaffold, dominio, persistencia, HTTP API, EmailProvider fake, worker, e Docker final. 130 testes passam, 595 com `-race -count=5`. Docker compose sobe com `/health` funcional e smoke test end-to-end passa (create -> worker -> SENT). Veja [o roadmap](docs/plan-v1.md#fases-de-implementacao) para o status por etapa.
