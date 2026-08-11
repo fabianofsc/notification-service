@@ -223,7 +223,7 @@ Criar SmsProvider fake com o mesmo contrato de entrega do e-mail. Nenhuma integr
 - `domain.ChannelSMS` adicionado ao tipo `Channel`
 - `Recipient.ValidateFor` e `NormalizedSearch` aceitam SMS (validacao E.164)
 - `ComputeFingerprint` inclui phone_number normalizado para canal SMS
-- Migration `000004` relaxa CHECK constraint para `('EMAIL', 'SMS')`
+- Migration `000004` remove CHECK constraint de `channel` (regra fica no dominio)
 - `internal/sms/` — `FakeProvider` com `FailKey` deterministico e logs sem dados sensiveis
 - `Worker` roteia para `EmailProvider` ou `SmsProvider` baseado no `Channel` da notificacao
 - `POST /v1/notifications` aceita `"channel": "SMS"` com `"recipient": {"phone_number": "+5511..."}`

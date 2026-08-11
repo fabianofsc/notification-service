@@ -1,2 +1,2 @@
-ALTER TABLE notifications DROP CONSTRAINT notifications_channel_check;
-ALTER TABLE notifications ADD CONSTRAINT notifications_channel_check CHECK (channel IN ('EMAIL'));
+-- Down migration is a no-op; the constraint was removed from 000001.
+SELECT 1;

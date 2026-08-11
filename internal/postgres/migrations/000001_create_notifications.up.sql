@@ -17,7 +17,6 @@ CREATE TABLE notifications (
     sent_at             timestamptz,
     updated_at          timestamptz NOT NULL,
 
-    CONSTRAINT notifications_channel_check CHECK (channel IN ('EMAIL')),
     CONSTRAINT notifications_status_check CHECK (status IN ('PENDING', 'SENDING', 'SENT', 'FAILED'))
 );
 
