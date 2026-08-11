@@ -27,14 +27,15 @@ func (r *Repository) Insert(ctx context.Context, n domain.Notification) (domain.
 	row := r.pool.QueryRow(ctx,
 		`INSERT INTO notifications (
 			id, notification_key, payload_fingerprint, channel, recipient, recipient_search,
-			subject, body, reference_id, status, attempt_count, created_at, updated_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+			subject, body, reference_id, callback_id, callback_name, status, attempt_count, created_at, updated_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
 		ON CONFLICT (notification_key) DO NOTHING
 		RETURNING id, notification_key, payload_fingerprint, channel, recipient, recipient_search,
-			subject, body, reference_id, status, lease_token, lease_until,
+			subject, body, reference_id, callback_id, callback_name,
+			status, lease_token, lease_until,
 			attempt_count, failure_reason, created_at, sent_at, updated_at`,
 		n.ID, n.NotificationKey, n.PayloadFingerprint, string(n.Channel), n.Recipient.Raw(), search,
-		n.Subject, n.Body, n.ReferenceID, string(n.Status), n.AttemptCount, n.CreatedAt, n.UpdatedAt,
+		n.Subject, n.Body, n.ReferenceID, n.CallbackID, n.CallbackName, string(n.Status), n.AttemptCount, n.CreatedAt, n.UpdatedAt,
 	)
 
 	inserted, scanErr := scanNotification(row)
@@ -68,7 +69,8 @@ func (r *Repository) ClaimBatch(ctx context.Context, batchSize int, leaseDuratio
 			FOR UPDATE SKIP LOCKED
 		)
 		RETURNING id, notification_key, payload_fingerprint, channel, recipient, recipient_search,
-			subject, body, reference_id, status, lease_token, lease_until,
+			subject, body, reference_id, callback_id, callback_name,
+			status, lease_token, lease_until,
 			attempt_count, failure_reason, created_at, sent_at, updated_at`,
 		leaseUntil, now, batchSize,
 	)
@@ -111,7 +113,8 @@ func (r *Repository) Complete(ctx context.Context, id uuid.UUID, status domain.S
 func (r *Repository) FindByID(ctx context.Context, id uuid.UUID) (domain.Notification, error) {
 	row := r.pool.QueryRow(ctx,
 		`SELECT id, notification_key, payload_fingerprint, channel, recipient, recipient_search,
-			subject, body, reference_id, status, lease_token, lease_until,
+			subject, body, reference_id, callback_id, callback_name,
+			status, lease_token, lease_until,
 			attempt_count, failure_reason, created_at, sent_at, updated_at
 		FROM notifications WHERE id = $1`, id,
 	)
@@ -125,7 +128,8 @@ func (r *Repository) FindByID(ctx context.Context, id uuid.UUID) (domain.Notific
 func (r *Repository) FindByNotificationKey(ctx context.Context, key string) (domain.Notification, error) {
 	row := r.pool.QueryRow(ctx,
 		`SELECT id, notification_key, payload_fingerprint, channel, recipient, recipient_search,
-			subject, body, reference_id, status, lease_token, lease_until,
+			subject, body, reference_id, callback_id, callback_name,
+			status, lease_token, lease_until,
 			attempt_count, failure_reason, created_at, sent_at, updated_at
 		FROM notifications WHERE notification_key = $1`, key,
 	)
@@ -151,6 +155,7 @@ func scanNotification(row rowScanner) (domain.Notification, error) {
 		&n.ID, &n.NotificationKey, &n.PayloadFingerprint,
 		&channelStr, &recipientRaw, &searchStr,
 		&n.Subject, &n.Body, &n.ReferenceID,
+		&n.CallbackID, &n.CallbackName,
 		&statusStr, &n.LeaseToken, &leaseUntil,
 		&n.AttemptCount, &n.FailureReason,
 		&n.CreatedAt, &sentAt, &n.UpdatedAt,

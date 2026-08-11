@@ -33,6 +33,8 @@ type Notification struct {
 	Subject            string
 	Body               string
 	ReferenceID        string
+	CallbackID         string
+	CallbackName       string
 	Status             Status
 	LeaseToken         uuid.UUID
 	LeaseUntil         time.Time
@@ -52,6 +54,8 @@ func NewNotification(
 	subject string,
 	body string,
 	referenceID string,
+	callbackID string,
+	callbackName string,
 	now time.Time,
 ) (Notification, error) {
 	if notificationKey == "" {
@@ -76,6 +80,8 @@ func NewNotification(
 		Subject:            subject,
 		Body:               body,
 		ReferenceID:        referenceID,
+		CallbackID:         callbackID,
+		CallbackName:       callbackName,
 		Status:             StatusPending,
 		CreatedAt:          now,
 		UpdatedAt:          now,

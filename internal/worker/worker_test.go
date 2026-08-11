@@ -269,7 +269,7 @@ func pendingNotification(id uuid.UUID, key string, emailAddr string) domain.Noti
 		panic(err)
 	}
 	now := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
-	n, err := domain.NewNotification(id, key, "fp-"+key, domain.ChannelEmail, recipient, "Hello", "World", "ref-"+key, now)
+	n, err := domain.NewNotification(id, key, "fp-"+key, domain.ChannelEmail, recipient, "Hello", "World", "ref-"+key, "", "", now)
 	if err != nil {
 		panic(err)
 	}

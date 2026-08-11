@@ -173,7 +173,7 @@ func TestSendNotificationHandler_IdempotentReplay(t *testing.T) {
 	existingID := uuid.MustParse("018c3f4c-a1b2-7000-8000-000000000999")
 
 	recipient, _ := domain.NewRecipient([]byte(`{"email":"user@example.com"}`))
-	fp := domain.ComputeFingerprint(domain.ChannelEmail, recipient, "Hello", "World", "")
+	fp := domain.ComputeFingerprint(domain.ChannelEmail, recipient, "Hello", "World", "", "", "")
 
 	repo := &handlerFakeNotificationRepo{
 		insertFn: func(ctx context.Context, n domain.Notification) (domain.Notification, error) {

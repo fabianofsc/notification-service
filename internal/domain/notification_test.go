@@ -14,7 +14,7 @@ var testNow = time.Date(2026, 8, 11, 12, 0, 0, 0, time.UTC)
 
 func TestNewNotification_CreatesWithPendingStatus(t *testing.T) {
 	recipient := validEmailRecipient(t)
-	fp := domain.ComputeFingerprint(domain.ChannelEmail, recipient, "Hello", "World", "ref-1")
+	fp := domain.ComputeFingerprint(domain.ChannelEmail, recipient, "Hello", "World", "ref-1", "", "")
 
 	n, err := domain.NewNotification(
 		uuid.New(),
@@ -25,6 +25,8 @@ func TestNewNotification_CreatesWithPendingStatus(t *testing.T) {
 		"Hello",
 		"World",
 		"ref-1",
+		"",
+		"",
 		testNow,
 	)
 
@@ -39,7 +41,7 @@ func TestNewNotification_RejectsEmptyKey(t *testing.T) {
 	recipient := validEmailRecipient(t)
 
 	_, err := domain.NewNotification(
-		uuid.New(), "", "fp", domain.ChannelEmail, recipient, "Hello", "World", "ref-1", testNow,
+		uuid.New(), "", "fp", domain.ChannelEmail, recipient, "Hello", "World", "ref-1", "", "", testNow,
 	)
 
 	require.ErrorIs(t, err, domain.ErrEmptyNotificationKey)
@@ -49,7 +51,7 @@ func TestNewNotification_RejectsEmptySubject(t *testing.T) {
 	recipient := validEmailRecipient(t)
 
 	_, err := domain.NewNotification(
-		uuid.New(), "key-1", "fp", domain.ChannelEmail, recipient, "", "World", "ref-1", testNow,
+		uuid.New(), "key-1", "fp", domain.ChannelEmail, recipient, "", "World", "ref-1", "", "", testNow,
 	)
 
 	require.ErrorIs(t, err, domain.ErrEmptySubject)
@@ -59,7 +61,7 @@ func TestNewNotification_RejectsEmptyBody(t *testing.T) {
 	recipient := validEmailRecipient(t)
 
 	_, err := domain.NewNotification(
-		uuid.New(), "key-1", "fp", domain.ChannelEmail, recipient, "Hello", "", "ref-1", testNow,
+		uuid.New(), "key-1", "fp", domain.ChannelEmail, recipient, "Hello", "", "ref-1", "", "", testNow,
 	)
 
 	require.ErrorIs(t, err, domain.ErrEmptyBody)
@@ -69,7 +71,7 @@ func TestNewNotification_RejectsInvalidRecipient(t *testing.T) {
 	recipient := mustRecipient(t, `{"email":"not-an-email"}`)
 
 	_, err := domain.NewNotification(
-		uuid.New(), "key-1", "fp", domain.ChannelEmail, recipient, "Hello", "World", "ref-1", testNow,
+		uuid.New(), "key-1", "fp", domain.ChannelEmail, recipient, "Hello", "World", "ref-1", "", "", testNow,
 	)
 
 	require.ErrorIs(t, err, domain.ErrInvalidRecipient)
@@ -240,10 +242,11 @@ func mustRecipient(t *testing.T, raw string) domain.Recipient {
 func validPendingNotification(t *testing.T) domain.Notification {
 	t.Helper()
 	recipient := validEmailRecipient(t)
-	fp := domain.ComputeFingerprint(domain.ChannelEmail, recipient, "Hello", "World", "ref-1")
+	fp := domain.ComputeFingerprint(domain.ChannelEmail, recipient, "Hello", "World", "ref-1", "", "")
 	n, err := domain.NewNotification(
 		uuid.New(), "key-"+uuid.New().String(), fp,
-		domain.ChannelEmail, recipient, "Hello", "World", "ref-1", testNow,
+		domain.ChannelEmail, recipient, "Hello", "World", "ref-1",
+		"", "", testNow,
 	)
 	require.NoError(t, err)
 	return n

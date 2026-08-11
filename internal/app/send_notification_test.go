@@ -92,7 +92,7 @@ func TestSendNotification_IdempotentSameFingerprint(t *testing.T) {
 	existing := domain.Notification{
 		ID:                 uuid.MustParse("018c3f4c-a1b2-7000-8000-000000000999"),
 		NotificationKey:    "key-1",
-		PayloadFingerprint: domain.ComputeFingerprint(input.Channel, input.Recipient, input.Subject, input.Body, input.ReferenceID),
+		PayloadFingerprint: domain.ComputeFingerprint(input.Channel, input.Recipient, input.Subject, input.Body, input.ReferenceID, input.CallbackID, input.CallbackName),
 		Channel:            domain.ChannelEmail,
 		Recipient:          input.Recipient,
 		Subject:            "Hello",

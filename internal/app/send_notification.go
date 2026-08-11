@@ -20,13 +20,15 @@ type SendNotificationInput struct {
 	Subject         string
 	Body            string
 	ReferenceID     string
+	CallbackID      string
+	CallbackName    string
 }
 
 func SendNotification(ctx context.Context, deps SendNotificationDeps, input SendNotificationInput) (domain.Notification, error) {
 	now := deps.Clock.Now()
 	id := deps.IDs.NewID()
 
-	fingerprint := domain.ComputeFingerprint(input.Channel, input.Recipient, input.Subject, input.Body, input.ReferenceID)
+	fingerprint := domain.ComputeFingerprint(input.Channel, input.Recipient, input.Subject, input.Body, input.ReferenceID, input.CallbackID, input.CallbackName)
 
 	n, err := domain.NewNotification(
 		id,
@@ -37,6 +39,8 @@ func SendNotification(ctx context.Context, deps SendNotificationDeps, input Send
 		input.Subject,
 		input.Body,
 		input.ReferenceID,
+		input.CallbackID,
+		input.CallbackName,
 		now,
 	)
 	if err != nil {

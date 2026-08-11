@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-func ComputeFingerprint(channel Channel, recipient Recipient, subject string, body string, referenceID string) string {
+func ComputeFingerprint(channel Channel, recipient Recipient, subject string, body string, referenceID string, callbackID string, callbackName string) string {
 	var normalizedEmail string
 	if channel == ChannelEmail {
 		email, err := recipient.Email()
@@ -16,12 +16,14 @@ func ComputeFingerprint(channel Channel, recipient Recipient, subject string, bo
 		normalizedEmail = email
 	}
 
-	canonical := fmt.Sprintf("%s|%s|%s|%s|%s",
+	canonical := fmt.Sprintf("%s|%s|%s|%s|%s|%s|%s",
 		string(channel),
 		normalizedEmail,
 		strings.TrimSpace(subject),
 		strings.TrimSpace(body),
 		strings.TrimSpace(referenceID),
+		strings.TrimSpace(callbackID),
+		strings.TrimSpace(callbackName),
 	)
 
 	hash := sha256.Sum256([]byte(canonical))

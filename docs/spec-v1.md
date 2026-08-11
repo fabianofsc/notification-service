@@ -78,7 +78,9 @@ Corpo:
   },
   "subject": "Pedido confirmado",
   "body": "Seu pedido 123 foi confirmado.",
-  "reference_id": "order:123"
+  "reference_id": "order:123",
+  "callback_id": "order:123",
+  "callback_name": "order_confirmed"
 }
 ```
 
@@ -89,6 +91,7 @@ Regras:
 - recipient.email deve ser valido.
 - subject e body sao obrigatorios para e-mail.
 - reference_id e opaco.
+- callback_id e callback_name sao opacos; o servico nao os interpreta.
 - A mesma chave com o mesmo payload devolve a notificacao existente.
 - A mesma chave com payload diferente retorna 409 Conflict.
 - O servico devolve 202 Accepted com a notificacao em PENDING.
@@ -102,6 +105,8 @@ Resposta:
   "channel": "EMAIL",
   "status": "PENDING",
   "reference_id": "order:123",
+  "callback_id": "order:123",
+  "callback_name": "order_confirmed",
   "created_at": "2026-08-11T12:00:00Z"
 }
 ```
@@ -157,6 +162,8 @@ Tabelas sugeridas:
     - subject
     - body
     - reference_id
+    - callback_id
+    - callback_name
     - status
     - lease_token
     - lease_until

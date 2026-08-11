@@ -40,6 +40,8 @@ func SendNotificationHandler(deps app.SendNotificationDeps) http.HandlerFunc {
 			Subject:         req.Subject,
 			Body:            req.Body,
 			ReferenceID:     req.ReferenceID,
+			CallbackID:      req.CallbackID,
+			CallbackName:    req.CallbackName,
 		}
 
 		n, err := app.SendNotification(r.Context(), deps, input)

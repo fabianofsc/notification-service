@@ -15,6 +15,8 @@ type CreateNotificationRequest struct {
 	Subject         string          `json:"subject"`
 	Body            string          `json:"body"`
 	ReferenceID     string          `json:"reference_id"`
+	CallbackID      string          `json:"callback_id"`
+	CallbackName    string          `json:"callback_name"`
 }
 
 func (r CreateNotificationRequest) Validate() error {
@@ -42,6 +44,8 @@ type NotificationResponse struct {
 	Channel         string     `json:"channel"`
 	Status          string     `json:"status"`
 	ReferenceID     string     `json:"reference_id"`
+	CallbackID      string     `json:"callback_id,omitempty"`
+	CallbackName    string     `json:"callback_name,omitempty"`
 	CreatedAt       time.Time  `json:"created_at"`
 	AttemptCount    int        `json:"attempt_count"`
 	SentAt          *time.Time `json:"sent_at,omitempty"`
@@ -55,6 +59,8 @@ func NewNotificationResponse(n domain.Notification) NotificationResponse {
 		Channel:         string(n.Channel),
 		Status:          string(n.Status),
 		ReferenceID:     n.ReferenceID,
+		CallbackID:      n.CallbackID,
+		CallbackName:    n.CallbackName,
 		CreatedAt:       n.CreatedAt.UTC(),
 		AttemptCount:    n.AttemptCount,
 		FailureReason:   n.FailureReason,

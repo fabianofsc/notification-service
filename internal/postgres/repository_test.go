@@ -58,10 +58,11 @@ func newRepo(t *testing.T, databaseURL string) *pg.Repository {
 func validNotification(t *testing.T) domain.Notification {
 	t.Helper()
 	recipient := mustRecipient(t, `{"email":"cliente@example.com"}`)
-	fp := domain.ComputeFingerprint(domain.ChannelEmail, recipient, "Hello", "World", "ref-1")
+	fp := domain.ComputeFingerprint(domain.ChannelEmail, recipient, "Hello", "World", "ref-1", "", "")
 	n, err := domain.NewNotification(
 		uuid.New(), "key-"+uuid.New().String(), fp,
 		domain.ChannelEmail, recipient, "Hello", "World", "ref-1",
+		"", "",
 		time.Now(),
 	)
 	require.NoError(t, err)

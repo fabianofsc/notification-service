@@ -50,7 +50,9 @@ Idempotency-Key: order-confirmed:123:attempt-456
   },
   "subject": "Pedido confirmado",
   "body": "Seu pedido 123 foi confirmado.",
-  "reference_id": "order:123"
+  "reference_id": "order:123",
+  "callback_id": "order:123",
+  "callback_name": "order_confirmed"
 }
 ```
 
@@ -63,6 +65,8 @@ Idempotency-Key: order-confirmed:123:attempt-456
   "channel": "EMAIL",
   "status": "PENDING",
   "reference_id": "order:123",
+  "callback_id": "order:123",
+  "callback_name": "order_confirmed",
   "created_at": "2026-08-11T12:00:00Z"
 }
 ```
