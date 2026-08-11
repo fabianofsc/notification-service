@@ -173,7 +173,6 @@ Banco de dados: `notification_db` com usuario `notification_usr` (default local)
 - [x] `domain.ChannelSMS` — novo channel no tipo `Channel`
 - [x] `Recipient.ValidateFor` / `NormalizedSearch` — validacao E.164 para SMS
 - [x] `ComputeFingerprint` — inclui phone_number normalizado para canal SMS
-- [x] Migration `000004` — remove CHECK constraint de channel (regra no dominio)
 - [x] `internal/sms/` — `FakeProvider` com `FailKey` deterministico
 - [x] `app.SmsProvider` — interface identica a `EmailProvider`
 - [x] `Worker` — roteia por `Channel` (`dispatch` / `resolveDestination`)
