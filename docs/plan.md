@@ -69,14 +69,14 @@ Banco de dados: `notification_service` com usuario `notification` (default local
 
 **Objetivo:** Projeto compilavel, Docker funcional, health check.
 
-- [ ] `go.mod` (module `github.com/nexus-shopping/notification-service`)
-- [ ] Estrutura de diretorios
-- [ ] `internal/config/` — parse de env vars com validacao
-- [ ] `cmd/server/main.go` — esqueleto: config, logger, HTTP server com `/health`
-- [ ] `Dockerfile` — multi-stage com distroless
-- [ ] `docker-compose.yml` — PostgreSQL + servico
-- [ ] `.env.example`
-- [ ] `Makefile`
+- [x] `go.mod` (module `github.com/nexus-shopping/notification-service`)
+- [x] Estrutura de diretorios
+- [x] `internal/config/` — parse de env vars com validacao
+- [x] `cmd/server/main.go` — esqueleto: config, logger, HTTP server com `/health`
+- [x] `Dockerfile` — multi-stage com distroless
+- [x] `docker-compose.yml` — PostgreSQL + servico
+- [x] `.env.example`
+- [x] `Makefile`
 
 **Done when:** `docker compose up` sobe o servico e `curl /health` retorna `{"status":"ok"}` com o banco acessivel.
 
