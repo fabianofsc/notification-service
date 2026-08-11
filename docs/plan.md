@@ -152,9 +152,9 @@ Banco de dados: `notification_db` com usuario `notification_usr` (default local)
 
 **Objetivo:** Imagem minima funcional, smoke test automatizado.
 
-- [ ] Dockerfile final com distroless
-- [ ] `docker-compose.yml` completo
-- [ ] Script de smoke test: sobe container, cria notificacao, worker processa, status = SENT
+- [x] Dockerfile final com distroless
+- [x] `docker-compose.yml` completo
+- [x] Script de smoke test: sobe container, cria notificacao, worker processa, status = SENT
 
 **Done when:** `docker compose up` + smoke test passa end-to-end.
 

@@ -86,4 +86,4 @@ Se uma tarefa parece precisar de um destes, pare e pergunte. E mais provavel que
 
 ## Estado atual
 
-Fases 1-6 implementadas: scaffold, dominio, persistencia, HTTP API, EmailProvider fake, e worker. 130 testes passam, 595 com `-race -count=5`. Docker compose sobe com `/health` funcional. **Fase 7 (Docker final + smoke test) pendente.** Veja [o roadmap](docs/plan.md#fases-de-implementacao) para o status por etapa.
+Fases 1-7 implementadas: scaffold, dominio, persistencia, HTTP API, EmailProvider fake, worker, e Docker final. 130 testes passam, 595 com `-race -count=5`. Docker compose sobe com `/health` funcional e smoke test end-to-end passa (create -> worker -> SENT). Veja [o roadmap](docs/plan.md#fases-de-implementacao) para o status por etapa.

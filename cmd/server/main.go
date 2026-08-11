@@ -5,6 +5,8 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -12,8 +14,10 @@ import (
 	"github.com/nexus-shopping/notification-service/internal/app"
 	"github.com/nexus-shopping/notification-service/internal/clock"
 	"github.com/nexus-shopping/notification-service/internal/config"
+	"github.com/nexus-shopping/notification-service/internal/email"
 	httppkg "github.com/nexus-shopping/notification-service/internal/http"
 	"github.com/nexus-shopping/notification-service/internal/postgres"
+	"github.com/nexus-shopping/notification-service/internal/worker"
 )
 
 func main() {
@@ -49,6 +53,7 @@ func main() {
 	repo := postgres.NewRepository(pool)
 	realClock := clock.Real{}
 	idGen := clock.UUIDv7Generator{}
+	emailProvider := &email.FakeProvider{Log: logger}
 
 	router := httppkg.NewRouter(httppkg.Dependencies{
 		SendNotification: app.SendNotificationDeps{
@@ -61,16 +66,59 @@ func main() {
 		},
 		BasicAuthUser: cfg.BasicAuthUser,
 		BasicAuthPass: cfg.BasicAuthPass,
+		Pool:          pool,
 	})
+
+	w := worker.New(worker.WorkerDeps{
+		Notifications: repo,
+		Deliveries:    repo,
+		Email:         emailProvider,
+		Clock:         realClock,
+		IDs:           idGen,
+		Log:           logger,
+	}, worker.WorkerConfig{
+		PollInterval:   cfg.PollInterval,
+		BatchSize:      cfg.BatchSize,
+		LeaseDuration:  cfg.LeaseDuration,
+		MaxConcurrency: cfg.MaxConcurrency,
+	})
+
+	workerCtx, workerCancel := context.WithCancel(context.Background())
+	defer workerCancel()
+
+	go func() {
+		if err := w.Run(workerCtx); err != nil {
+			slog.Error("worker error", "error", err)
+		}
+	}()
 
 	srv := &http.Server{
 		Addr:    cfg.HTTPAddr,
 		Handler: router,
 	}
 
+	go func() {
+		quit := make(chan os.Signal, 1)
+		signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+		<-quit
+
+		slog.Info("shutting down...")
+
+		workerCancel()
+
+		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer shutdownCancel()
+
+		if err := srv.Shutdown(shutdownCtx); err != nil {
+			slog.Error("server shutdown error", "error", err)
+		}
+	}()
+
 	slog.Info("notification-service starting", "addr", cfg.HTTPAddr)
 	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		slog.Error("server error", "error", err)
 		os.Exit(1)
 	}
+
+	slog.Info("notification-service stopped")
 }

@@ -3,6 +3,8 @@ package http
 import (
 	"net/http"
 
+	"github.com/jackc/pgx/v5/pgxpool"
+
 	"github.com/nexus-shopping/notification-service/internal/app"
 )
 
@@ -11,6 +13,7 @@ type Dependencies struct {
 	GetNotification  app.GetNotificationDeps
 	BasicAuthUser    string
 	BasicAuthPass    string
+	Pool             *pgxpool.Pool
 }
 
 func NewRouter(deps Dependencies) http.Handler {
@@ -23,11 +26,7 @@ func NewRouter(deps Dependencies) http.Handler {
 	authenticated := BasicAuth(deps.BasicAuthUser, deps.BasicAuthPass)(v1)
 
 	mux.Handle("/v1/", authenticated)
-	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"status":"ok"}`))
-	})
+	mux.HandleFunc("GET /health", HealthHandler(deps.Pool))
 
 	return mux
 }
