@@ -61,7 +61,7 @@ docs/
 | `BATCH_SIZE` | no | `10` | Tamanho do batch |
 | `MAX_CONCURRENCY` | no | `5` | Concorrencia maxima |
 
-Banco de dados: `notification_service` com usuario `notification` (default local).
+Banco de dados: `notification_db` com usuario `notification_usr` (default local).
 
 ## Fases de implementacao
 

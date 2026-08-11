@@ -11,7 +11,7 @@ import (
 
 func validEnv() map[string]string {
 	return map[string]string{
-		"DATABASE_URL":        "postgres://notification:notification@localhost:5432/notification_service?sslmode=disable",
+		"DATABASE_URL":        "postgres://notification_usr:notification_pwd@localhost:5432/notification_db?sslmode=disable",
 		"BASIC_AUTH_USERNAME": "svc",
 		"BASIC_AUTH_PASSWORD": "s3cret",
 		"PORT":                "9090",
@@ -34,7 +34,7 @@ func TestLoad_AllValid_ProducesExpectedConfig(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Equal(t, ":9090", cfg.HTTPAddr)
-	require.Equal(t, "postgres://notification:notification@localhost:5432/notification_service?sslmode=disable", cfg.DatabaseURL)
+	require.Equal(t, "postgres://notification_usr:notification_pwd@localhost:5432/notification_db?sslmode=disable", cfg.DatabaseURL)
 	require.Equal(t, "svc", cfg.BasicAuthUser)
 	require.Equal(t, "s3cret", cfg.BasicAuthPass)
 	require.Equal(t, 10*time.Second, cfg.LeaseDuration)

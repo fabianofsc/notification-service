@@ -2,15 +2,15 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: notification
-      POSTGRES_PASSWORD: notification
-      POSTGRES_DB: notification_service
+      POSTGRES_USER: notification_usr
+      POSTGRES_PASSWORD: notification_pwd
+      POSTGRES_DB: notification_db
     ports:
       - "5432:5432"
     volumes:
       - notification-postgres:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U notification -d notification_service"]
+      test: ["CMD-SHELL", "pg_isready -U notification_usr -d notification_db"]
       interval: 2s
       timeout: 2s
       retries: 15
@@ -20,7 +20,7 @@ services:
     ports:
       - "8080:8080"
     environment:
-      DATABASE_URL: postgres://notification:notification@postgres:5432/notification_service?sslmode=disable
+      DATABASE_URL: postgres://notification_usr:notification_pwd@postgres:5432/notification_db?sslmode=disable
       PORT: "8080"
     depends_on:
       postgres:
