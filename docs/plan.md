@@ -97,13 +97,13 @@ Banco de dados: `notification_db` com usuario `notification_usr` (default local)
 
 **Objetivo:** PostgreSQL acessivel, migrations aplicadas, repositories funcionais.
 
-- [ ] Migrations SQL (`embed`) — tabelas `notifications` e `notification_deliveries`
-- [ ] `internal/postgres/` — NotificationRepository adapter
+- [x] Migrations SQL (`embed`) — tabelas `notifications` e `notification_deliveries`
+- [x] `internal/postgres/` — NotificationRepository adapter
   - Insert com `ON CONFLICT (notification_key)` + fingerprint check
   - Claim atomico com `FOR UPDATE SKIP LOCKED` + lease token
   - Complete condicional ao lease token
   - Find by ID
-- [ ] `internal/postgres/` — DeliveryRepository adapter
+- [x] `internal/postgres/` — DeliveryRepository adapter
   - Insert delivery
   - Complete delivery condicional
 
