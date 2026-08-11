@@ -10,3 +10,4 @@
 | [0006](adr-0006-in-process-polling-worker.md) | Accepted | In-process polling worker with `SKIP LOCKED` |
 | [0007](adr-0007-polymorphic-recipient-jsonb.md) | Accepted | Polymorphic recipient as JSONB with search index |
 | [0008](adr-0008-basic-auth-technical-accounts.md) | Accepted | Basic Auth with single technical account per environment |
+| [0009](adr-0009-integration-tests-testcontainers.md) | Accepted | Integration tests with testcontainers-go (ephemeral PostgreSQL) |

@@ -17,9 +17,9 @@ Cada decisao listada aqui tem um ADR completo em `docs/decisions/`. A tabela aba
 | Worker | `time.Ticker` + `SKIP LOCKED`, in-process | [0006](docs/decisions/adr-0006-in-process-polling-worker.md) |
 | Autenticacao | Basic Auth, conta tecnica por ambiente | [0008](docs/decisions/adr-0008-basic-auth-technical-accounts.md) |
 | Migrations | `golang-migrate` com `embed` | [0003](docs/decisions/adr-0003-postgresql-pgx-hand-written-sql.md) |
-| Docker | Multi-stage `golang:1.24-alpine` -> `distroless/static` | — |
+| Docker | Multi-stage `golang:1.25-alpine` -> `distroless/static` | — |
 | Configuracao | `os.Getenv` puro, defaults documentados | — |
-| Testes | Integracao = fluxo feliz com PostgreSQL real; Unitarios = todas variacoes com fakes | — |
+| Testes | Integracao = fluxo feliz com PostgreSQL real; Unitarios = todas variacoes com fakes | [0009](docs/decisions/adr-0009-integration-tests-testcontainers.md) |
 
 ## Estrutura do projeto
 
@@ -160,7 +160,7 @@ Banco de dados: `notification_db` com usuario `notification_usr` (default local)
 
 ## Regra de testes
 
-- **Integracao:** apenas fluxo feliz com PostgreSQL real (`testcontainers-go`). Roda no CI, skipa localmente sem banco.
+- **Integracao:** apenas fluxo feliz com PostgreSQL real via `testcontainers-go` (container efêmero por suíte, sem estado compartilhado). Zero configuracao manual — o teste sobe e derruba o banco.
 - **Unitario:** todas as variacoes, edge cases e cenarios de erro. Usam fakes em memoria. Rodam sempre (`go test ./...`).
 
 ## Fora de escopo (V1)

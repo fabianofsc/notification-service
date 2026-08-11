@@ -43,28 +43,26 @@ Nao sao preferencias de estilo. Violar uma e um defeito, e cada uma rastreia um 
 ## Comandos
 
 ```sh
-make db-up               # sobe PostgreSQL via docker compose
-make test                # testes unitarios; nao precisam de banco
-make test-integration    # testes de integracao; requer banco
+make test                # todos os testes; integracao via testcontainers
 make lint                # vet + verificacoes estaticas
 make run                 # roda o servico contra o banco do compose
-go test ./...            # tudo; integracao skipa sem banco
+go test ./...            # mesmo que make test
 go test ./... -race -count=5   # rode ao final de cada fase
 ```
 
-Testes de integracao skipam quando nao ha banco acessivel, entao `go test ./...` funciona em qualquer lugar. Em CI um skip e **falha** — nunca confie apenas em um green local como evidencia de garantia que depende de banco.
+Testes de integracao usam `testcontainers-go`: cada suite sobe um container PostgreSQL efêmero, aplica migrations, e derruba ao final. Nao requer banco pre-existente nem `docker compose`. (ADR-0009)
 
 ---
 
 ## Convencoes
 
-**Layout** — ver spec SStack e plan.md. `cmd/server/main.go` e o unico lugar onde adapters sao construidos.
+**Layout** — ver spec SStack e plan-v1.md. `cmd/server/main.go` e o unico lugar onde adapters sao construidos.
 
 **Erros** — erros de dominio sao sentinel values em `internal/domain`, mapeados para HTTP codes apenas em `internal/http`. Wrap com `%w`. Um body `500` nunca contem o erro subjacente; ele e logado.
 
 **Identificadores** — `uuid.UUID` no dominio e no banco, nunca `string`. O prefixo `ntf_`/`dly_` e aplicado e removido apenas na borda HTTP. Um UUID bem-formado com o prefixo errado e `404`, nao um lookup. (ADR-0004)
 
-**Testes** — table-driven, na stdlib `testing`. `testify/require` para controle de fluxo; `cmp.Diff` reportado como `(-want +got)` para comparar structs. Nunca `assert` — apenas `require`. Nunca `testify/mock` ou `testify/suite`: fakes sao escritos a mao, e `t.Cleanup` cobre teardown. Testes de integracao ganham schema proprio e nao compartilham estado.
+**Testes** — table-driven, na stdlib `testing`. `testify/require` para controle de fluxo; `cmp.Diff` reportado como `(-want +got)` para comparar structs. Nunca `assert` — apenas `require`. Nunca `testify/mock` ou `testify/suite`: fakes sao escritos a mao, e `t.Cleanup` cobre teardown. Testes de integracao usam container PostgreSQL efêmero via `testcontainers-go` e nao compartilham estado. (ADR-0009)
 
 > **Nunca use `require.Equal` em struct contendo timestamp.** Cai em `reflect.DeepEqual`, que compara monotonic reading e location pointer, entao um valor que passou pelo PostgreSQL falha contra o original mesmo quando os instants sao iguais. Use `cmp.Diff`, que respeita `time.Time.Equal`.
 
