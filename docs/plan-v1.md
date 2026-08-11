@@ -158,6 +158,14 @@ Banco de dados: `notification_db` com usuario `notification_usr` (default local)
 
 **Done when:** `docker compose up` + smoke test passa end-to-end.
 
+### Refactoring V1: callback_id e callback_name
+
+**Objetivo:** Preparar o contrato de entrada para publicacao de eventos de status na evolucao com mensageria.
+
+- [x] `callback_id` e `callback_name` no request e response
+- [x] Campos adicionados ao dominio (`Notification`), fingerprint, e persistencia
+- [x] Migration `000003` adiciona colunas com default `''`
+
 ## Regra de testes
 
 - **Integracao:** apenas fluxo feliz com PostgreSQL real via `testcontainers-go` (container efêmero por suíte, sem estado compartilhado). Zero configuracao manual — o teste sobe e derruba o banco.

@@ -11,3 +11,4 @@
 | [0007](adr-0007-polymorphic-recipient-jsonb.md) | Accepted | Polymorphic recipient as JSONB with search index |
 | [0008](adr-0008-basic-auth-technical-accounts.md) | Accepted | Basic Auth with single technical account per environment |
 | [0009](adr-0009-integration-tests-testcontainers.md) | Accepted | Integration tests with testcontainers-go (ephemeral PostgreSQL) |
+| [0010](adr-0010-callback-fields-event-correlation.md) | Accepted | Callback fields for event correlation in future messaging |
