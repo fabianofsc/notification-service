@@ -52,7 +52,7 @@ func TestCreateNotificationRequest_EmptyKey(t *testing.T) {
 func TestCreateNotificationRequest_InvalidChannel(t *testing.T) {
 	r := CreateNotificationRequest{
 		NotificationKey: "key-1",
-		Channel:         "SMS",
+		Channel:         "PUSH",
 		Recipient:       json.RawMessage(`{"phone_number":"+5511999999999"}`),
 		Subject:         "Hello",
 		Body:            "World",

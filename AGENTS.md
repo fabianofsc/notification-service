@@ -76,7 +76,7 @@ Testes de integracao usam `testcontainers-go`: cada suite sobe um container Post
 
 Nao construa estes, e nao "se prepare" para eles. Cada ausencia e uma decisao registrada no spec e nos ADRs:
 
-Envio real de e-mail ou SMS · canal SMS (Evolucao 1, futura) · dashboard administrativo · templates persistidos · filas externas ou broker · retry com backoff · webhooks de status · multiplas contas tecnicas · push notification · integracao com qualquer outro servico.
+Envio real de e-mail ou SMS · dashboard administrativo · templates persistidos · filas externas ou broker · retry com backoff · webhooks de status · multiplas contas tecnicas · push notification · integracao com qualquer outro servico.
 
 Se uma tarefa parece precisar de um destes, pare e pergunte. E mais provavel que a tarefa esteja errada do que o escopo.
 

@@ -200,11 +200,11 @@ Criar unicidade para notification_key e para delivery_key.
 - Idempotencia: replay igual, conflito de payload e concorrencia.
 - Persistencia PostgreSQL: unicidade, claim atomico e finalizacao condicional.
 - HTTP: autenticacao, validacao, 202, replay e 409.
-- Worker: e-mail fake com sucesso e falha.
+- Worker: e-mail e SMS fake com sucesso e falha.
 - Recuperacao: lease expirada pode ser reclamada.
 - Container: servico sobe localmente com PostgreSQL e responde health.
 
-## Evolucao 1: SMS fake
+## Evolucao 1: SMS fake ✅
 
 Adicionar SMS como novo channel, sem alterar o ciclo de vida ou a API de notificacao.
 
@@ -217,6 +217,16 @@ Novo formato de recipient:
 ```
 
 Criar SmsProvider fake com o mesmo contrato de entrega do e-mail. Nenhuma integracao real e permitida nessa fase.
+
+**Implementado na V1:**
+
+- `domain.ChannelSMS` adicionado ao tipo `Channel`
+- `Recipient.ValidateFor` e `NormalizedSearch` aceitam SMS (validacao E.164)
+- `ComputeFingerprint` inclui phone_number normalizado para canal SMS
+- Migration `000004` relaxa CHECK constraint para `('EMAIL', 'SMS')`
+- `internal/sms/` — `FakeProvider` com `FailKey` deterministico e logs sem dados sensiveis
+- `Worker` roteia para `EmailProvider` ou `SmsProvider` baseado no `Channel` da notificacao
+- `POST /v1/notifications` aceita `"channel": "SMS"` com `"recipient": {"phone_number": "+5511..."}`
 
 ## Evolucoes futuras
 

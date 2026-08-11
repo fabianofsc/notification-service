@@ -359,11 +359,11 @@ func TestWorkerHandlesEmailFailure(t *testing.T) {
 	failed := 0
 	if n1.Status == domain.StatusFailed {
 		failed++
-		require.Contains(t, n1.FailureReason, "email send failed")
+		require.Contains(t, n1.FailureReason, "send failed")
 	}
 	if n2.Status == domain.StatusFailed {
 		failed++
-		require.Contains(t, n2.FailureReason, "email send failed")
+		require.Contains(t, n2.FailureReason, "send failed")
 	}
 	require.Equal(t, 1, failed, "exactly one notification should fail")
 

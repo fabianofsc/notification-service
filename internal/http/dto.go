@@ -23,17 +23,23 @@ func (r CreateNotificationRequest) Validate() error {
 	if r.NotificationKey == "" {
 		return fmt.Errorf("notification_key is required")
 	}
-	if r.Channel != string(domain.ChannelEmail) {
-		return fmt.Errorf("channel must be EMAIL")
+	switch domain.Channel(r.Channel) {
+	case domain.ChannelEmail:
+		if r.Subject == "" {
+			return fmt.Errorf("subject is required for EMAIL")
+		}
+		if r.Body == "" {
+			return fmt.Errorf("body is required")
+		}
+	case domain.ChannelSMS:
+		if r.Body == "" {
+			return fmt.Errorf("body is required")
+		}
+	default:
+		return fmt.Errorf("channel must be EMAIL or SMS")
 	}
 	if len(r.Recipient) == 0 {
 		return fmt.Errorf("recipient is required")
-	}
-	if r.Subject == "" {
-		return fmt.Errorf("subject is required")
-	}
-	if r.Body == "" {
-		return fmt.Errorf("body is required")
 	}
 	return nil
 }

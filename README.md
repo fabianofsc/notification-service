@@ -75,6 +75,21 @@ Idempotency-Key: order-confirmed:123:attempt-456
 - Mesma chave + mesmo payload -> `202` com a notificacao existente
 - Mesma chave + payload diferente -> `409 Conflict`
 
+**SMS example:**
+```json
+{
+  "notification_key": "sms-otp:user:456",
+  "channel": "SMS",
+  "recipient": {
+    "phone_number": "+5511999999999"
+  },
+  "body": "Seu codigo de verificacao e 123456",
+  "reference_id": "user:456",
+  "callback_id": "user:456",
+  "callback_name": "send_otp"
+}
+```
+
 ### GET /v1/notifications/{notification_id}
 
 Retorna estado atual, tentativas, timestamps e motivo de falha.
@@ -124,6 +139,6 @@ Testes de integracao usam PostgreSQL real (`testcontainers-go`). Sem banco, eles
 
 ## Escopo
 
-**V1:** notificacoes por EMAIL (fake), deduplicacao, worker in-process, lease-based concurrency.
+**V1:** notificacoes por EMAIL e SMS (fake), deduplicacao, worker in-process, lease-based concurrency.
 
-**Fora de escopo:** envio real de e-mail/SMS, canal SMS, templates persistidos, filas externas, webhooks, broker, dashboard.
+**Fora de escopo:** envio real de e-mail/SMS, templates persistidos, filas externas, webhooks, broker, dashboard.

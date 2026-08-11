@@ -15,6 +15,7 @@ type WorkerDeps struct {
 	Notifications app.NotificationRepository
 	Deliveries    app.DeliveryRepository
 	Email         app.EmailProvider
+	Sms           app.SmsProvider
 	Clock         app.Clock
 	IDs           app.IDGenerator
 	Log           *slog.Logger
@@ -31,6 +32,7 @@ type Worker struct {
 	notifications  app.NotificationRepository
 	deliveries     app.DeliveryRepository
 	email          app.EmailProvider
+	sms            app.SmsProvider
 	clock          app.Clock
 	ids            app.IDGenerator
 	log            *slog.Logger
@@ -45,6 +47,7 @@ func New(deps WorkerDeps, cfg WorkerConfig) *Worker {
 		notifications:  deps.Notifications,
 		deliveries:     deps.Deliveries,
 		email:          deps.Email,
+		sms:            deps.Sms,
 		clock:          deps.Clock,
 		ids:            deps.IDs,
 		log:            deps.Log,
@@ -107,9 +110,10 @@ func (w *Worker) processOne(ctx context.Context, n domain.Notification) {
 	w.log.Info("notification claimed",
 		"notification_id", n.ID.String(),
 		"notification_key", n.NotificationKey,
+		"channel", string(n.Channel),
 	)
 
-	to, err := n.Recipient.Email()
+	to, err := w.resolveDestination(n)
 	if err != nil {
 		w.failNotification(ctx, n, fmt.Sprintf("invalid recipient: %s", err))
 		return
@@ -129,7 +133,7 @@ func (w *Worker) processOne(ctx context.Context, n domain.Notification) {
 		return
 	}
 
-	ok, sendErr := w.email.Send(ctx, to, n.Subject, n.Body, deliveryKey)
+	ok, sendErr := w.dispatch(ctx, n, to, deliveryKey)
 	now = w.clock.Now()
 
 	if sendErr == nil && ok {
@@ -158,7 +162,7 @@ func (w *Worker) processOne(ctx context.Context, n domain.Notification) {
 			"success", true,
 		)
 	} else {
-		reason := "email send failed"
+		reason := "send failed"
 		if sendErr != nil {
 			reason = sendErr.Error()
 		}
@@ -186,6 +190,28 @@ func (w *Worker) processOne(ctx context.Context, n domain.Notification) {
 			"delivery_key", deliveryKey,
 			"success", false,
 		)
+	}
+}
+
+func (w *Worker) dispatch(ctx context.Context, n domain.Notification, to string, deliveryKey string) (bool, error) {
+	switch n.Channel {
+	case domain.ChannelEmail:
+		return w.email.Send(ctx, to, n.Subject, n.Body, deliveryKey)
+	case domain.ChannelSMS:
+		return w.sms.Send(ctx, to, n.Subject, n.Body, deliveryKey)
+	default:
+		return false, fmt.Errorf("unsupported channel: %s", n.Channel)
+	}
+}
+
+func (w *Worker) resolveDestination(n domain.Notification) (string, error) {
+	switch n.Channel {
+	case domain.ChannelEmail:
+		return n.Recipient.Email()
+	case domain.ChannelSMS:
+		return n.Recipient.PhoneNumber()
+	default:
+		return "", fmt.Errorf("unsupported channel: %s", n.Channel)
 	}
 }
 

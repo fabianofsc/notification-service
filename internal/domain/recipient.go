@@ -60,6 +60,12 @@ func (r Recipient) ValidateFor(ch Channel) error {
 			return fmt.Errorf("%w: %w", ErrInvalidRecipient, err)
 		}
 		return nil
+	case ChannelSMS:
+		_, err := r.PhoneNumber()
+		if err != nil {
+			return fmt.Errorf("%w: %w", ErrInvalidRecipient, err)
+		}
+		return nil
 	default:
 		return fmt.Errorf("%w: unsupported channel %q", ErrInvalidChannel, ch)
 	}
@@ -73,6 +79,12 @@ func (r Recipient) NormalizedSearch(ch Channel) (string, error) {
 			return "", err
 		}
 		return email, nil
+	case ChannelSMS:
+		phone, err := r.PhoneNumber()
+		if err != nil {
+			return "", err
+		}
+		return phone, nil
 	default:
 		return "", fmt.Errorf("%w: unsupported channel %q", ErrInvalidChannel, ch)
 	}

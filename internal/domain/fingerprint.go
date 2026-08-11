@@ -7,18 +7,25 @@ import (
 )
 
 func ComputeFingerprint(channel Channel, recipient Recipient, subject string, body string, referenceID string, callbackID string, callbackName string) string {
-	var normalizedEmail string
-	if channel == ChannelEmail {
+	var normalizedTo string
+	switch channel {
+	case ChannelEmail:
 		email, err := recipient.Email()
 		if err != nil {
 			return ""
 		}
-		normalizedEmail = email
+		normalizedTo = email
+	case ChannelSMS:
+		phone, err := recipient.PhoneNumber()
+		if err != nil {
+			return ""
+		}
+		normalizedTo = phone
 	}
 
 	canonical := fmt.Sprintf("%s|%s|%s|%s|%s|%s|%s",
 		string(channel),
-		normalizedEmail,
+		normalizedTo,
 		strings.TrimSpace(subject),
 		strings.TrimSpace(body),
 		strings.TrimSpace(referenceID),

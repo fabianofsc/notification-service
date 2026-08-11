@@ -34,3 +34,7 @@ type DeliveryRepository interface {
 type EmailProvider interface {
 	Send(ctx context.Context, to string, subject string, body string, deliveryKey string) (bool, error)
 }
+
+type SmsProvider interface {
+	Send(ctx context.Context, to string, subject string, body string, deliveryKey string) (bool, error)
+}

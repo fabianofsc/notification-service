@@ -17,6 +17,7 @@ import (
 	"github.com/nexus-shopping/notification-service/internal/email"
 	httppkg "github.com/nexus-shopping/notification-service/internal/http"
 	"github.com/nexus-shopping/notification-service/internal/postgres"
+	"github.com/nexus-shopping/notification-service/internal/sms"
 	"github.com/nexus-shopping/notification-service/internal/worker"
 )
 
@@ -54,6 +55,7 @@ func main() {
 	realClock := clock.Real{}
 	idGen := clock.UUIDv7Generator{}
 	emailProvider := &email.FakeProvider{Log: logger}
+	smsProvider := &sms.FakeProvider{Log: logger}
 
 	router := httppkg.NewRouter(httppkg.Dependencies{
 		SendNotification: app.SendNotificationDeps{
@@ -73,6 +75,7 @@ func main() {
 		Notifications: repo,
 		Deliveries:    repo,
 		Email:         emailProvider,
+		Sms:           smsProvider,
 		Clock:         realClock,
 		IDs:           idGen,
 		Log:           logger,

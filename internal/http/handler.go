@@ -35,7 +35,7 @@ func SendNotificationHandler(deps app.SendNotificationDeps) http.HandlerFunc {
 
 		input := app.SendNotificationInput{
 			NotificationKey: req.NotificationKey,
-			Channel:         domain.ChannelEmail,
+			Channel:         domain.Channel(req.Channel),
 			Recipient:       recipient,
 			Subject:         req.Subject,
 			Body:            req.Body,

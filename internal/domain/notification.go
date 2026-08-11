@@ -22,6 +22,7 @@ type Channel string
 
 const (
 	ChannelEmail Channel = "EMAIL"
+	ChannelSMS   Channel = "SMS"
 )
 
 type Notification struct {

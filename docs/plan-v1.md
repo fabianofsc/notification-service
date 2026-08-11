@@ -166,6 +166,20 @@ Banco de dados: `notification_db` com usuario `notification_usr` (default local)
 - [x] Campos adicionados ao dominio (`Notification`), fingerprint, e persistencia
 - [x] Migration `000003` adiciona colunas com default `''`
 
+### Evolucao 1: Canal SMS
+
+**Objetivo:** Adicionar SMS como novo channel, com provider fake identico ao de e-mail.
+
+- [x] `domain.ChannelSMS` — novo channel no tipo `Channel`
+- [x] `Recipient.ValidateFor` / `NormalizedSearch` — validacao E.164 para SMS
+- [x] `ComputeFingerprint` — inclui phone_number normalizado para canal SMS
+- [x] Migration `000004` — relaxa CHECK constraint para `('EMAIL', 'SMS')`
+- [x] `internal/sms/` — `FakeProvider` com `FailKey` deterministico
+- [x] `app.SmsProvider` — interface identica a `EmailProvider`
+- [x] `Worker` — roteia por `Channel` (`dispatch` / `resolveDestination`)
+- [x] HTTP — valida channel EMAIL ou SMS; subject opcional para SMS
+- [x] `cmd/server/main.go` — wiring do `sms.FakeProvider`
+
 ## Regra de testes
 
 - **Integracao:** apenas fluxo feliz com PostgreSQL real via `testcontainers-go` (container efêmero por suíte, sem estado compartilhado). Zero configuracao manual — o teste sobe e derruba o banco.
