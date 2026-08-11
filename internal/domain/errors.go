@@ -14,4 +14,5 @@ var (
 	ErrLeaseTokenMismatch   = errors.New("lease token does not match")
 	ErrNotSending           = errors.New("notification is not in SENDING state")
 	ErrNotificationNotFound = errors.New("notification not found")
+	ErrPayloadMismatch      = errors.New("payload does not match existing notification")
 )

@@ -30,3 +30,7 @@ type DeliveryRepository interface {
 	CompleteDeliverySuccess(ctx context.Context, id uuid.UUID, response string, now time.Time) error
 	CompleteDeliveryFailure(ctx context.Context, id uuid.UUID, reason string, now time.Time) error
 }
+
+type EmailProvider interface {
+	Send(ctx context.Context, to string, subject string, body string, deliveryKey string) (bool, error)
+}

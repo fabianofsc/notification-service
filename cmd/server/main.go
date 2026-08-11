@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"log/slog"
 	"net/http"
 	"os"
@@ -10,7 +9,11 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/nexus-shopping/notification-service/internal/app"
+	"github.com/nexus-shopping/notification-service/internal/clock"
 	"github.com/nexus-shopping/notification-service/internal/config"
+	httppkg "github.com/nexus-shopping/notification-service/internal/http"
+	"github.com/nexus-shopping/notification-service/internal/postgres"
 )
 
 func main() {
@@ -23,8 +26,13 @@ func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 	slog.SetDefault(logger)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
+
+	if err := postgres.RunMigrations(ctx, cfg.DatabaseURL); err != nil {
+		slog.Error("migration failed", "error", err)
+		os.Exit(1)
+	}
 
 	pool, err := pgxpool.New(ctx, cfg.DatabaseURL)
 	if err != nil {
@@ -38,35 +46,31 @@ func main() {
 		os.Exit(1)
 	}
 
-	mux := http.NewServeMux()
-	mux.HandleFunc("GET /health", healthHandler(pool))
+	repo := postgres.NewRepository(pool)
+	realClock := clock.Real{}
+	idGen := clock.UUIDv7Generator{}
+
+	router := httppkg.NewRouter(httppkg.Dependencies{
+		SendNotification: app.SendNotificationDeps{
+			Notifications: repo,
+			Clock:         realClock,
+			IDs:           idGen,
+		},
+		GetNotification: app.GetNotificationDeps{
+			Notifications: repo,
+		},
+		BasicAuthUser: cfg.BasicAuthUser,
+		BasicAuthPass: cfg.BasicAuthPass,
+	})
 
 	srv := &http.Server{
 		Addr:    cfg.HTTPAddr,
-		Handler: mux,
+		Handler: router,
 	}
 
 	slog.Info("notification-service starting", "addr", cfg.HTTPAddr)
 	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		slog.Error("server error", "error", err)
 		os.Exit(1)
-	}
-}
-
-func healthHandler(pool *pgxpool.Pool) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
-		defer cancel()
-
-		if err := pool.Ping(ctx); err != nil {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusServiceUnavailable)
-			json.NewEncoder(w).Encode(map[string]string{"status": "error"})
-			return
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 	}
 }

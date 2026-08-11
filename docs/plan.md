@@ -113,13 +113,13 @@ Banco de dados: `notification_db` com usuario `notification_usr` (default local)
 
 **Objetivo:** API REST funcional com autenticacao e idempotencia.
 
-- [ ] `internal/http/idcodec.go` — encode/decode com prefixos `ntf_` e `dly_`
-- [ ] `internal/http/middleware.go` — Basic Auth middleware
-- [ ] `internal/http/dto.go` — request/response DTOs com validacao
-- [ ] `internal/http/handler.go` — `POST /v1/notifications`, `GET /v1/notifications/{id}`
-- [ ] `internal/app/` — SendNotification use case, GetNotification use case
-- [ ] Validacao: notification_key obrigatorio, channel EMAIL, email valido, subject/body obrigatorios
-- [ ] Idempotencia: replay = 202 com existente; payload diferente = 409
+- [x] `internal/http/idcodec.go` — encode/decode com prefixos `ntf_` e `dly_`
+- [x] `internal/http/middleware.go` — Basic Auth middleware
+- [x] `internal/http/dto.go` — request/response DTOs com validacao
+- [x] `internal/http/handler.go` — `POST /v1/notifications`, `GET /v1/notifications/{id}`
+- [x] `internal/app/` — SendNotification use case, GetNotification use case
+- [x] Validacao: notification_key obrigatorio, channel EMAIL, email valido, subject/body obrigatorios
+- [x] Idempotencia: replay = 202 com existente; payload diferente = 409
 
 **Done when:** Testes unitarios (`httptest`) cobrem auth, validacao, 202, 409, replay. Teste de integracao cobre POST + GET happy path.
 
@@ -127,7 +127,7 @@ Banco de dados: `notification_db` com usuario `notification_usr` (default local)
 
 **Objetivo:** Adapter fake de e-mail com log estruturado e falha controlada.
 
-- [ ] `internal/email/` — EmailProvider fake
+- [x] `internal/email/` — EmailProvider fake
   - Sucesso padrao com log via `slog`
   - Falha deterministica por configuracao (ex: `X-Fail-Delivery: true` no delivery key)
   - Nunca loga corpo completo do e-mail
@@ -139,12 +139,12 @@ Banco de dados: `notification_db` com usuario `notification_usr` (default local)
 
 **Objetivo:** Worker de polling processa notificacoes pendentes.
 
-- [ ] `internal/worker/` — polling loop com `time.Ticker`
-- [ ] Claim batch com `SKIP LOCKED LIMIT N`
-- [ ] Dispatch para EmailProvider (fora da transacao)
-- [ ] Complete condicional ao lease token
-- [ ] Graceful shutdown via `context.Context`
-- [ ] Logs estruturados em cada etapa
+- [x] `internal/worker/` — polling loop com `time.Ticker`
+- [x] Claim batch com `SKIP LOCKED LIMIT N`
+- [x] Dispatch para EmailProvider (fora da transacao)
+- [x] Complete condicional ao lease token
+- [x] Graceful shutdown via `context.Context`
+- [x] Logs estruturados em cada etapa
 
 **Done when:** Testes unitarios cobrem ciclo sucesso/falha. Teste de integracao cobre recovery de lease expirada.
 
