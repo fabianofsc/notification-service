@@ -84,12 +84,12 @@ Banco de dados: `notification_db` com usuario `notification_usr` (default local)
 
 **Objetivo:** Todos os tipos puros do dominio, sem dependencias externas.
 
-- [ ] `internal/domain/` — Notification, Delivery, Channel, Status, Recipient
-- [ ] Transicoes de estado com fencing de lease (`PENDING -> SENDING -> SENT/FAILED`)
-- [ ] Validacao de recipient por channel (email para EMAIL, phone_number para SMS)
-- [ ] `internal/clock/` — interface Clock + implementacao real (injetavel)
-- [ ] `internal/clock/id.go` — UUIDv7Generator (padrao dummy-pay)
-- [ ] `internal/app/ports.go` — interfaces: NotificationRepository, DeliveryRepository, EmailProvider, IDGenerator, Clock
+- [x] `internal/domain/` — Notification, Delivery, Channel, Status, Recipient
+- [x] Transicoes de estado com fencing de lease (`PENDING -> SENDING -> SENT/FAILED`)
+- [x] Validacao de recipient por channel (email para EMAIL, phone_number para SMS)
+- [x] `internal/clock/` — interface Clock + implementacao real (injetavel)
+- [x] `internal/clock/id.go` — UUIDv7Generator (padrao dummy-pay)
+- [x] `internal/app/ports.go` — interfaces: NotificationRepository, DeliveryRepository, EmailProvider, IDGenerator, Clock
 
 **Done when:** Testes unitarios de dominio passam (`-race -count=5`).
 
