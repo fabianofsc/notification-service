@@ -13,32 +13,34 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
+	"github.com/nexus-shopping/notification-service/internal/app"
 	"github.com/nexus-shopping/notification-service/internal/clock"
 	"github.com/nexus-shopping/notification-service/internal/domain"
 	"github.com/nexus-shopping/notification-service/internal/email"
 )
 
 type fakeNotificationRepo struct {
-	mu   sync.Mutex
-	data map[uuid.UUID]domain.Notification
+	mu         sync.Mutex
+	data       map[uuid.UUID]domain.Notification
+	claimCalls int
 }
 
 func newFakeNotificationRepo() *fakeNotificationRepo {
 	return &fakeNotificationRepo{data: make(map[uuid.UUID]domain.Notification)}
 }
 
-func (r *fakeNotificationRepo) Insert(_ context.Context, n domain.Notification) (domain.Notification, error) {
+func (r *fakeNotificationRepo) Insert(_ context.Context, n domain.Notification) (app.InsertNotificationResult, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.data[n.ID] = n
-	return n, nil
+	return app.InsertNotificationResult{Notification: n}, nil
 }
 
-func (r *fakeNotificationRepo) ClaimBatch(_ context.Context, batchSize int, leaseDuration time.Duration) ([]domain.Notification, error) {
+func (r *fakeNotificationRepo) ClaimBatch(_ context.Context, batchSize int, leaseDuration time.Duration, now time.Time) ([]domain.Notification, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	r.claimCalls++
 
-	now := time.Now()
 	leaseUntil := now.Add(leaseDuration)
 
 	var claimed []domain.Notification
@@ -59,6 +61,12 @@ func (r *fakeNotificationRepo) ClaimBatch(_ context.Context, batchSize int, leas
 		claimed = append(claimed, n)
 	}
 	return claimed, nil
+}
+
+func (r *fakeNotificationRepo) claimedBatches() int {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.claimCalls
 }
 
 func (r *fakeNotificationRepo) Complete(_ context.Context, id uuid.UUID, status domain.Status, leaseToken uuid.UUID, now time.Time, failureReason string) (bool, error) {
@@ -480,6 +488,33 @@ func TestWorkerDrainsOnShutdown(t *testing.T) {
 		require.NoError(t, err)
 		require.True(t, n.Status.IsTerminal(), "notification %s should be terminal, got %s", key, n.Status)
 	}
+}
+
+func TestWorkerDoesNotClaimAfterCancellation(t *testing.T) {
+	notifRepo := newFakeNotificationRepo()
+	deliveryRepo := newFakeDeliveryRepo()
+	fakeClock := clock.NewFake(time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC))
+	notifRepo.Insert(context.Background(), pendingNotification(uuid.New(), "key-1", "test@test.com"))
+
+	w := New(WorkerDeps{
+		Notifications: notifRepo,
+		Deliveries:    deliveryRepo,
+		Email:         &email.FakeProvider{Log: nullLogger()},
+		Clock:         fakeClock,
+		IDs:           &fakeIDGenerator{},
+		Log:           nullLogger(),
+	}, WorkerConfig{
+		PollInterval:   time.Hour,
+		BatchSize:      1,
+		LeaseDuration:  30 * time.Second,
+		MaxConcurrency: 1,
+	})
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	require.NoError(t, w.Run(ctx))
+	require.Equal(t, 0, notifRepo.claimedBatches())
 }
 
 func TestWorkerLogsWithoutSensitiveData(t *testing.T) {

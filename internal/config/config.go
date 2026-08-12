@@ -9,14 +9,14 @@ import (
 )
 
 type Config struct {
-	HTTPAddr         string
-	DatabaseURL      string
-	BasicAuthUser    string
-	BasicAuthPass    string
-	LeaseDuration    time.Duration
-	PollInterval     time.Duration
-	BatchSize        int
-	MaxConcurrency   int
+	HTTPAddr       string
+	DatabaseURL    string
+	BasicAuthUser  string
+	BasicAuthPass  string
+	LeaseDuration  time.Duration
+	PollInterval   time.Duration
+	BatchSize      int
+	MaxConcurrency int
 }
 
 type Lookup func(key string) (value string, ok bool)

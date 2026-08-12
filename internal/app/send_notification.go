@@ -24,7 +24,12 @@ type SendNotificationInput struct {
 	CallbackName    string
 }
 
-func SendNotification(ctx context.Context, deps SendNotificationDeps, input SendNotificationInput) (domain.Notification, error) {
+type SendNotificationResult struct {
+	Notification domain.Notification
+	Replayed     bool
+}
+
+func SendNotification(ctx context.Context, deps SendNotificationDeps, input SendNotificationInput) (SendNotificationResult, error) {
 	now := deps.Clock.Now()
 	id := deps.IDs.NewID()
 
@@ -44,20 +49,17 @@ func SendNotification(ctx context.Context, deps SendNotificationDeps, input Send
 		now,
 	)
 	if err != nil {
-		return domain.Notification{}, fmt.Errorf("send notification: %w", err)
+		return SendNotificationResult{}, fmt.Errorf("send notification: %w", err)
 	}
 
 	inserted, err := deps.Notifications.Insert(ctx, n)
 	if err != nil {
-		return domain.Notification{}, fmt.Errorf("send notification: %w", err)
+		return SendNotificationResult{}, fmt.Errorf("send notification: %w", err)
 	}
 
-	if inserted.ID != id {
-		if inserted.PayloadFingerprint != fingerprint {
-			return domain.Notification{}, domain.ErrPayloadMismatch
-		}
-		return inserted, nil
+	if inserted.Replayed && inserted.Notification.PayloadFingerprint != fingerprint {
+		return SendNotificationResult{}, domain.ErrPayloadMismatch
 	}
 
-	return inserted, nil
+	return SendNotificationResult{Notification: inserted.Notification, Replayed: inserted.Replayed}, nil
 }

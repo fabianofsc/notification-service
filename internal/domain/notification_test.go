@@ -57,6 +57,18 @@ func TestNewNotification_RejectsEmptySubject(t *testing.T) {
 	require.ErrorIs(t, err, domain.ErrEmptySubject)
 }
 
+func TestNewNotification_AllowsEmptySubjectForSMS(t *testing.T) {
+	recipient := mustRecipient(t, `{"phone_number":"+5511999999999"}`)
+
+	n, err := domain.NewNotification(
+		uuid.New(), "key-1", "fp", domain.ChannelSMS, recipient, "", "Codigo 123456", "ref-1", "", "", testNow,
+	)
+
+	require.NoError(t, err)
+	require.Equal(t, domain.ChannelSMS, n.Channel)
+	require.Empty(t, n.Subject)
+}
+
 func TestNewNotification_RejectsEmptyBody(t *testing.T) {
 	recipient := validEmailRecipient(t)
 

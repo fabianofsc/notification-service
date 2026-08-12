@@ -44,6 +44,48 @@ func TestRecipient_ValidateForEmail_RejectsInvalid(t *testing.T) {
 	}
 }
 
+func TestRecipient_ValidateForEmail_RejectsUnknownFields(t *testing.T) {
+	r := mustRecipient(t, `{"email":"cliente@example.com","phone_number":"+5511999999999"}`)
+
+	err := r.ValidateFor(domain.ChannelEmail)
+
+	require.ErrorIs(t, err, domain.ErrInvalidRecipient)
+}
+
+func TestRecipient_ValidateForSMS_RejectsUnknownFields(t *testing.T) {
+	r := mustRecipient(t, `{"phone_number":"+5511999999999","email":"cliente@example.com"}`)
+
+	err := r.ValidateFor(domain.ChannelSMS)
+
+	require.ErrorIs(t, err, domain.ErrInvalidRecipient)
+}
+
+func TestRecipient_ValidateForSMS_RejectsInvalidE164(t *testing.T) {
+	for _, raw := range []string{
+		`{"phone_number":"+"}`,
+		`{"phone_number":"+abc"}`,
+		`{"phone_number":"+55 11"}`,
+		`{"phone_number":"5511999999999"}`,
+		`{"phone_number":"+5511999999999999"}`,
+	} {
+		t.Run(raw, func(t *testing.T) {
+			r := mustRecipient(t, raw)
+
+			err := r.ValidateFor(domain.ChannelSMS)
+
+			require.ErrorIs(t, err, domain.ErrInvalidRecipient)
+		})
+	}
+}
+
+func TestRecipient_ValidateForSMS_AcceptsE164(t *testing.T) {
+	r := mustRecipient(t, `{"phone_number":"+5511999999999"}`)
+
+	err := r.ValidateFor(domain.ChannelSMS)
+
+	require.NoError(t, err)
+}
+
 func TestRecipient_NewRecipient_RejectsEmpty(t *testing.T) {
 	_, err := domain.NewRecipient(nil)
 	require.ErrorIs(t, err, domain.ErrEmptyRecipient)

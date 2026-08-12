@@ -18,15 +18,16 @@ import (
 )
 
 type handlerFakeNotificationRepo struct {
-	insertFn  func(ctx context.Context, n domain.Notification) (domain.Notification, error)
+	insertFn   func(ctx context.Context, n domain.Notification) (domain.Notification, error)
 	findByIDFn func(ctx context.Context, id uuid.UUID) (domain.Notification, error)
 }
 
-func (f *handlerFakeNotificationRepo) Insert(ctx context.Context, n domain.Notification) (domain.Notification, error) {
+func (f *handlerFakeNotificationRepo) Insert(ctx context.Context, n domain.Notification) (app.InsertNotificationResult, error) {
 	if f.insertFn != nil {
-		return f.insertFn(ctx, n)
+		inserted, err := f.insertFn(ctx, n)
+		return app.InsertNotificationResult{Notification: inserted, Replayed: inserted.ID != n.ID}, err
 	}
-	return n, nil
+	return app.InsertNotificationResult{Notification: n}, nil
 }
 
 func (f *handlerFakeNotificationRepo) FindByID(ctx context.Context, id uuid.UUID) (domain.Notification, error) {
@@ -40,7 +41,7 @@ func (f *handlerFakeNotificationRepo) FindByNotificationKey(ctx context.Context,
 	return domain.Notification{}, fmt.Errorf("not implemented")
 }
 
-func (f *handlerFakeNotificationRepo) ClaimBatch(ctx context.Context, batchSize int, leaseDuration time.Duration) ([]domain.Notification, error) {
+func (f *handlerFakeNotificationRepo) ClaimBatch(ctx context.Context, batchSize int, leaseDuration time.Duration, now time.Time) ([]domain.Notification, error) {
 	return nil, fmt.Errorf("not implemented")
 }
 
@@ -73,6 +74,7 @@ func TestSendNotificationHandler_Success(t *testing.T) {
 	body := `{"notification_key":"key-1","channel":"EMAIL","recipient":{"email":"user@example.com"},"subject":"Hello","body":"World"}`
 	req := httptest.NewRequest(http.MethodPost, "/v1/notifications", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Idempotency-Key", "key-1")
 	rec := httptest.NewRecorder()
 
 	handler := SendNotificationHandler(deps)
@@ -124,6 +126,7 @@ func TestSendNotificationHandler_InvalidJSON(t *testing.T) {
 	body := `not json`
 	req := httptest.NewRequest(http.MethodPost, "/v1/notifications", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Idempotency-Key", "key-1")
 	rec := httptest.NewRecorder()
 
 	handler := SendNotificationHandler(deps)
@@ -159,6 +162,7 @@ func TestSendNotificationHandler_PayloadMismatch(t *testing.T) {
 	body := `{"notification_key":"key-1","channel":"EMAIL","recipient":{"email":"user@example.com"},"subject":"Hello","body":"World"}`
 	req := httptest.NewRequest(http.MethodPost, "/v1/notifications", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Idempotency-Key", "key-1")
 	rec := httptest.NewRecorder()
 
 	handler := SendNotificationHandler(deps)
@@ -199,12 +203,107 @@ func TestSendNotificationHandler_IdempotentReplay(t *testing.T) {
 	body := `{"notification_key":"key-1","channel":"EMAIL","recipient":{"email":"user@example.com"},"subject":"Hello","body":"World"}`
 	req := httptest.NewRequest(http.MethodPost, "/v1/notifications", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Idempotency-Key", "key-1")
 	rec := httptest.NewRecorder()
 
 	handler := SendNotificationHandler(deps)
 	handler.ServeHTTP(rec, req)
 
 	require.Equal(t, http.StatusAccepted, rec.Code)
+}
+
+func TestSendNotificationHandler_UsesIdempotencyKeyHeaderWithoutBodyKey(t *testing.T) {
+	fixedID := uuid.MustParse("018c3f4c-a1b2-7000-8000-000000000001")
+	fixedTime := time.Date(2026, 8, 11, 12, 0, 0, 0, time.UTC)
+	deps := app.SendNotificationDeps{
+		Notifications: &handlerFakeNotificationRepo{},
+		Clock:         &handlerFakeClock{now: fixedTime},
+		IDs:           &handlerFakeIDGenerator{next: fixedID},
+	}
+
+	body := `{"channel":"EMAIL","recipient":{"email":"user@example.com"},"subject":"Hello","body":"World"}`
+	req := httptest.NewRequest(http.MethodPost, "/v1/notifications", strings.NewReader(body))
+	req.Header.Set("Idempotency-Key", "header-key")
+	rec := httptest.NewRecorder()
+
+	SendNotificationHandler(deps).ServeHTTP(rec, req)
+
+	require.Equal(t, http.StatusAccepted, rec.Code)
+	var resp NotificationResponse
+	require.NoError(t, json.NewDecoder(rec.Body).Decode(&resp))
+	require.Equal(t, "header-key", resp.NotificationKey)
+}
+
+func TestSendNotificationHandler_HeaderKeyOverridesBodyKey(t *testing.T) {
+	fixedID := uuid.MustParse("018c3f4c-a1b2-7000-8000-000000000001")
+	fixedTime := time.Date(2026, 8, 11, 12, 0, 0, 0, time.UTC)
+	deps := app.SendNotificationDeps{
+		Notifications: &handlerFakeNotificationRepo{},
+		Clock:         &handlerFakeClock{now: fixedTime},
+		IDs:           &handlerFakeIDGenerator{next: fixedID},
+	}
+
+	body := `{"notification_key":"body-key","channel":"EMAIL","recipient":{"email":"user@example.com"},"subject":"Hello","body":"World"}`
+	req := httptest.NewRequest(http.MethodPost, "/v1/notifications", strings.NewReader(body))
+	req.Header.Set("Idempotency-Key", "header-key")
+	rec := httptest.NewRecorder()
+
+	SendNotificationHandler(deps).ServeHTTP(rec, req)
+
+	var resp NotificationResponse
+	require.NoError(t, json.NewDecoder(rec.Body).Decode(&resp))
+	require.Equal(t, "header-key", resp.NotificationKey)
+}
+
+func TestSendNotificationHandler_ReplayAfterStateChangeReturnsAccepted(t *testing.T) {
+	fixedID := uuid.MustParse("018c3f4c-a1b2-7000-8000-000000000001")
+	existingID := uuid.MustParse("018c3f4c-a1b2-7000-8000-000000000999")
+	fixedTime := time.Date(2026, 8, 11, 12, 0, 0, 0, time.UTC)
+	recipient, err := domain.NewRecipient([]byte(`{"email":"user@example.com"}`))
+	require.NoError(t, err)
+	fingerprint := domain.ComputeFingerprint(domain.ChannelEmail, recipient, "Hello", "World", "", "", "")
+
+	deps := app.SendNotificationDeps{
+		Notifications: &handlerFakeNotificationRepo{insertFn: func(context.Context, domain.Notification) (domain.Notification, error) {
+			return domain.Notification{
+				ID: existingID, NotificationKey: "key-1", PayloadFingerprint: fingerprint,
+				Channel: domain.ChannelEmail, Recipient: recipient, Subject: "Hello", Body: "World",
+				Status: domain.StatusSent, CreatedAt: fixedTime, UpdatedAt: fixedTime.Add(time.Minute), SentAt: fixedTime.Add(time.Minute),
+			}, nil
+		}},
+		Clock: &handlerFakeClock{now: fixedTime},
+		IDs:   &handlerFakeIDGenerator{next: fixedID},
+	}
+
+	body := `{"notification_key":"key-1","channel":"EMAIL","recipient":{"email":"user@example.com"},"subject":"Hello","body":"World"}`
+	req := httptest.NewRequest(http.MethodPost, "/v1/notifications", strings.NewReader(body))
+	req.Header.Set("Idempotency-Key", "key-1")
+	rec := httptest.NewRecorder()
+
+	SendNotificationHandler(deps).ServeHTTP(rec, req)
+
+	require.Equal(t, http.StatusAccepted, rec.Code)
+}
+
+func TestSendNotificationHandler_RepositoryFailureReturnsGenericInternalError(t *testing.T) {
+	fixedTime := time.Date(2026, 8, 11, 12, 0, 0, 0, time.UTC)
+	deps := app.SendNotificationDeps{
+		Notifications: &handlerFakeNotificationRepo{insertFn: func(context.Context, domain.Notification) (domain.Notification, error) {
+			return domain.Notification{}, fmt.Errorf("postgres unavailable")
+		}},
+		Clock: &handlerFakeClock{now: fixedTime},
+		IDs:   &handlerFakeIDGenerator{next: uuid.New()},
+	}
+
+	body := `{"notification_key":"key-1","channel":"EMAIL","recipient":{"email":"user@example.com"},"subject":"Hello","body":"World"}`
+	req := httptest.NewRequest(http.MethodPost, "/v1/notifications", strings.NewReader(body))
+	req.Header.Set("Idempotency-Key", "key-1")
+	rec := httptest.NewRecorder()
+
+	SendNotificationHandler(deps).ServeHTTP(rec, req)
+
+	require.Equal(t, http.StatusInternalServerError, rec.Code)
+	require.NotContains(t, rec.Body.String(), "postgres unavailable")
 }
 
 func TestSendNotificationHandler_InvalidChannel(t *testing.T) {
@@ -295,6 +394,23 @@ func TestGetNotificationHandler_NotFound(t *testing.T) {
 	handler.ServeHTTP(rec, req)
 
 	require.Equal(t, http.StatusNotFound, rec.Code)
+}
+
+func TestGetNotificationHandler_RepositoryFailureReturnsGenericInternalError(t *testing.T) {
+	deps := app.GetNotificationDeps{
+		Notifications: &handlerFakeNotificationRepo{findByIDFn: func(context.Context, uuid.UUID) (domain.Notification, error) {
+			return domain.Notification{}, fmt.Errorf("postgres unavailable")
+		}},
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/v1/notifications/ntf_018c3f4c-a1b2-7000-8000-000000000001", nil)
+	req.SetPathValue("id", "ntf_018c3f4c-a1b2-7000-8000-000000000001")
+	rec := httptest.NewRecorder()
+
+	GetNotificationHandler(deps).ServeHTTP(rec, req)
+
+	require.Equal(t, http.StatusInternalServerError, rec.Code)
+	require.NotContains(t, rec.Body.String(), "postgres unavailable")
 }
 
 func TestGetNotificationHandler_InvalidPrefix(t *testing.T) {

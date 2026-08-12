@@ -62,7 +62,7 @@ func NewNotification(
 	if notificationKey == "" {
 		return Notification{}, ErrEmptyNotificationKey
 	}
-	if subject == "" {
+	if channel == ChannelEmail && subject == "" {
 		return Notification{}, ErrEmptySubject
 	}
 	if body == "" {

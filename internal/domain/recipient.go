@@ -1,11 +1,16 @@
 package domain
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/mail"
+	"regexp"
 	"strings"
 )
+
+var e164PhoneNumber = regexp.MustCompile(`^\+[1-9][0-9]{1,14}$`)
 
 type Recipient struct {
 	raw json.RawMessage
@@ -22,7 +27,7 @@ func (r Recipient) Email() (string, error) {
 	var v struct {
 		Email string `json:"email"`
 	}
-	if err := json.Unmarshal(r.raw, &v); err != nil {
+	if err := decodeRecipient(r.raw, &v); err != nil {
 		return "", fmt.Errorf("%w: invalid JSON", ErrInvalidRecipient)
 	}
 	if v.Email == "" {
@@ -39,17 +44,32 @@ func (r Recipient) PhoneNumber() (string, error) {
 	var v struct {
 		PhoneNumber string `json:"phone_number"`
 	}
-	if err := json.Unmarshal(r.raw, &v); err != nil {
+	if err := decodeRecipient(r.raw, &v); err != nil {
 		return "", fmt.Errorf("%w: invalid JSON", ErrInvalidRecipient)
 	}
 	if v.PhoneNumber == "" {
 		return "", fmt.Errorf("%w: phone_number is required", ErrInvalidRecipient)
 	}
 	normalized := strings.TrimSpace(v.PhoneNumber)
-	if !strings.HasPrefix(normalized, "+") {
+	if !e164PhoneNumber.MatchString(normalized) {
 		return "", fmt.Errorf("%w: phone_number must be in E.164 format", ErrInvalidRecipient)
 	}
 	return normalized, nil
+}
+
+func decodeRecipient(raw json.RawMessage, target any) error {
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(target); err != nil {
+		return err
+	}
+	if err := decoder.Decode(&struct{}{}); err != io.EOF {
+		if err == nil {
+			return fmt.Errorf("multiple JSON values")
+		}
+		return err
+	}
+	return nil
 }
 
 func (r Recipient) ValidateFor(ch Channel) error {

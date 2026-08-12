@@ -71,7 +71,6 @@ Corpo:
 
 ```json
 {
-  "notification_key": "order-confirmed:123:attempt-456",
   "channel": "EMAIL",
   "recipient": {
     "email": "cliente@example.com"
@@ -86,10 +85,10 @@ Corpo:
 
 Regras:
 
-- notification_key e obrigatoria e unica.
-- channel aceita somente EMAIL na V1.
-- recipient.email deve ser valido.
-- subject e body sao obrigatorios para e-mail.
+- Idempotency-Key e obrigatoria e unica; notification_key e derivada exclusivamente desse cabecalho.
+- channel aceita EMAIL ou SMS.
+- recipient.email deve ser valido para EMAIL; recipient.phone_number deve ser E.164 para SMS.
+- subject e body sao obrigatorios para e-mail; para SMS, apenas body e obrigatorio.
 - reference_id e opaco.
 - callback_id e callback_name sao opacos; o servico nao os interpreta.
 - A mesma chave com o mesmo payload devolve a notificacao existente.

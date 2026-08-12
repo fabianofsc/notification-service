@@ -18,11 +18,16 @@ type IDGenerator interface {
 }
 
 type NotificationRepository interface {
-	Insert(ctx context.Context, n domain.Notification) (domain.Notification, error)
-	ClaimBatch(ctx context.Context, batchSize int, leaseDuration time.Duration) ([]domain.Notification, error)
+	Insert(ctx context.Context, n domain.Notification) (InsertNotificationResult, error)
+	ClaimBatch(ctx context.Context, batchSize int, leaseDuration time.Duration, now time.Time) ([]domain.Notification, error)
 	Complete(ctx context.Context, id uuid.UUID, status domain.Status, leaseToken uuid.UUID, now time.Time, failureReason string) (bool, error)
 	FindByID(ctx context.Context, id uuid.UUID) (domain.Notification, error)
 	FindByNotificationKey(ctx context.Context, key string) (domain.Notification, error)
+}
+
+type InsertNotificationResult struct {
+	Notification domain.Notification
+	Replayed     bool
 }
 
 type DeliveryRepository interface {

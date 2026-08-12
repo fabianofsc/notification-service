@@ -63,7 +63,22 @@ func validNotification(t *testing.T) domain.Notification {
 		uuid.New(), "key-"+uuid.New().String(), fp,
 		domain.ChannelEmail, recipient, "Hello", "World", "ref-1",
 		"", "",
-		time.Now(),
+		repositoryTestTime,
+	)
+	require.NoError(t, err)
+	return n
+}
+
+var repositoryTestTime = time.Date(2026, 8, 11, 12, 0, 0, 0, time.UTC)
+
+func validSMSNotification(t *testing.T) domain.Notification {
+	t.Helper()
+	recipient := mustRecipient(t, `{"phone_number":"+5511999999999"}`)
+	fingerprint := domain.ComputeFingerprint(domain.ChannelSMS, recipient, "", "Codigo 123456", "ref-1", "", "")
+	n, err := domain.NewNotification(
+		uuid.New(), "sms-"+uuid.New().String(), fingerprint,
+		domain.ChannelSMS, recipient, "", "Codigo 123456", "ref-1",
+		"", "", repositoryTestTime,
 	)
 	require.NoError(t, err)
 	return n
@@ -85,8 +100,9 @@ func TestInsert_ReturnsNotification(t *testing.T) {
 
 	inserted, err := repo.Insert(context.Background(), n)
 	require.NoError(t, err)
-	require.Equal(t, n.ID, inserted.ID)
-	require.Equal(t, domain.StatusPending, inserted.Status)
+	require.Equal(t, n.ID, inserted.Notification.ID)
+	require.Equal(t, domain.StatusPending, inserted.Notification.Status)
+	require.False(t, inserted.Replayed)
 }
 
 func TestInsert_SameKeyReturnsExisting(t *testing.T) {
@@ -101,7 +117,30 @@ func TestInsert_SameKeyReturnsExisting(t *testing.T) {
 
 	existing, err := repo.Insert(context.Background(), n)
 	require.NoError(t, err)
-	require.Equal(t, n.ID, existing.ID)
+	require.Equal(t, n.ID, existing.Notification.ID)
+	require.True(t, existing.Replayed)
+}
+
+func TestRunMigrations_UpgradesLegacyChannelConstraint(t *testing.T) {
+	url, cleanup := setupDB(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	pool, err := pgxpool.New(ctx, url)
+	require.NoError(t, err)
+	t.Cleanup(pool.Close)
+
+	_, err = pool.Exec(ctx, `ALTER TABLE notifications ADD CONSTRAINT notifications_channel_check CHECK (channel IN ('EMAIL'))`)
+	require.NoError(t, err)
+	_, err = pool.Exec(ctx, `UPDATE schema_migrations SET version = 3, dirty = false`)
+	require.NoError(t, err)
+
+	err = pg.RunMigrations(ctx, url)
+	require.NoError(t, err)
+
+	repo := pg.NewRepository(pool)
+	_, err = repo.Insert(ctx, validSMSNotification(t))
+	require.NoError(t, err)
 }
 
 func TestFindByID_ReturnsInsertedNotification(t *testing.T) {
@@ -118,6 +157,17 @@ func TestFindByID_ReturnsInsertedNotification(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, n.NotificationKey, found.NotificationKey)
 	require.Equal(t, domain.StatusPending, found.Status)
+}
+
+func TestFindByID_MissingReturnsDomainNotFound(t *testing.T) {
+	url, cleanup := setupDB(t)
+	defer cleanup()
+
+	repo := newRepo(t, url)
+
+	_, err := repo.FindByID(context.Background(), uuid.New())
+
+	require.ErrorIs(t, err, domain.ErrNotificationNotFound)
 }
 
 func TestFindByNotificationKey_ReturnsInsertedNotification(t *testing.T) {
@@ -148,7 +198,7 @@ func TestClaimBatch_PicksPendingNotifications(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	claimed, err := repo.ClaimBatch(ctx, 10, 30*time.Second)
+	claimed, err := repo.ClaimBatch(ctx, 10, 30*time.Second, repositoryTestTime)
 	require.NoError(t, err)
 	require.Len(t, claimed, 3)
 
@@ -156,6 +206,8 @@ func TestClaimBatch_PicksPendingNotifications(t *testing.T) {
 		require.Equal(t, domain.StatusSending, n.Status)
 		require.NotEqual(t, uuid.Nil, n.LeaseToken)
 		require.False(t, n.LeaseUntil.IsZero())
+		require.True(t, n.LeaseUntil.Equal(repositoryTestTime.Add(30*time.Second)))
+		require.True(t, n.UpdatedAt.Equal(repositoryTestTime))
 		require.Equal(t, 1, n.AttemptCount)
 	}
 }
@@ -171,11 +223,11 @@ func TestClaimBatch_DoesNotClaimAlreadyClaimed(t *testing.T) {
 	_, err := repo.Insert(ctx, n)
 	require.NoError(t, err)
 
-	claimed, err := repo.ClaimBatch(ctx, 10, 30*time.Second)
+	claimed, err := repo.ClaimBatch(ctx, 10, 30*time.Second, repositoryTestTime)
 	require.NoError(t, err)
 	require.Len(t, claimed, 1)
 
-	claimedAgain, err := repo.ClaimBatch(ctx, 10, 30*time.Second)
+	claimedAgain, err := repo.ClaimBatch(ctx, 10, 30*time.Second, repositoryTestTime)
 	require.NoError(t, err)
 	require.Len(t, claimedAgain, 0)
 }
@@ -191,11 +243,11 @@ func TestComplete_WithCorrectToken_Succeeds(t *testing.T) {
 	_, err := repo.Insert(ctx, n)
 	require.NoError(t, err)
 
-	claimed, err := repo.ClaimBatch(ctx, 10, 30*time.Second)
+	claimed, err := repo.ClaimBatch(ctx, 10, 30*time.Second, repositoryTestTime)
 	require.NoError(t, err)
 	require.Len(t, claimed, 1)
 
-	now := time.Now()
+	now := repositoryTestTime.Add(time.Minute)
 	ok, err := repo.Complete(ctx, claimed[0].ID, domain.StatusSent, claimed[0].LeaseToken, now, "")
 	require.NoError(t, err)
 	require.True(t, ok)
@@ -216,11 +268,11 @@ func TestComplete_WithWrongToken_Fails(t *testing.T) {
 	_, err := repo.Insert(ctx, n)
 	require.NoError(t, err)
 
-	claimed, err := repo.ClaimBatch(ctx, 10, 30*time.Second)
+	claimed, err := repo.ClaimBatch(ctx, 10, 30*time.Second, repositoryTestTime)
 	require.NoError(t, err)
 	require.Len(t, claimed, 1)
 
-	now := time.Now()
+	now := repositoryTestTime.Add(time.Minute)
 	wrongToken := uuid.New()
 	ok, err := repo.Complete(ctx, claimed[0].ID, domain.StatusSent, wrongToken, now, "")
 	require.NoError(t, err)
@@ -242,11 +294,11 @@ func TestComplete_WithFailure_SetsFailedStatus(t *testing.T) {
 	_, err := repo.Insert(ctx, n)
 	require.NoError(t, err)
 
-	claimed, err := repo.ClaimBatch(ctx, 10, 30*time.Second)
+	claimed, err := repo.ClaimBatch(ctx, 10, 30*time.Second, repositoryTestTime)
 	require.NoError(t, err)
 	require.Len(t, claimed, 1)
 
-	now := time.Now()
+	now := repositoryTestTime.Add(time.Minute)
 	ok, err := repo.Complete(ctx, claimed[0].ID, domain.StatusFailed, claimed[0].LeaseToken, now, "provider error")
 	require.NoError(t, err)
 	require.True(t, ok)
@@ -268,7 +320,7 @@ func TestInsertDelivery_StoresDelivery(t *testing.T) {
 	_, err := repo.Insert(ctx, n)
 	require.NoError(t, err)
 
-	delivery := domain.NewDelivery(uuid.New(), n.ID, "dkey-1", 1, time.Now())
+	delivery := domain.NewDelivery(uuid.New(), n.ID, "dkey-1", 1, repositoryTestTime)
 	err = repo.InsertDelivery(ctx, delivery)
 	require.NoError(t, err)
 }
@@ -284,10 +336,10 @@ func TestCompleteDeliverySuccess_UpdatesStatus(t *testing.T) {
 	_, err := repo.Insert(ctx, n)
 	require.NoError(t, err)
 
-	delivery := domain.NewDelivery(uuid.New(), n.ID, "dkey-2", 1, time.Now())
+	delivery := domain.NewDelivery(uuid.New(), n.ID, "dkey-2", 1, repositoryTestTime)
 	err = repo.InsertDelivery(ctx, delivery)
 	require.NoError(t, err)
 
-	err = repo.CompleteDeliverySuccess(ctx, delivery.ID, "sent ok", time.Now())
+	err = repo.CompleteDeliverySuccess(ctx, delivery.ID, "sent ok", repositoryTestTime.Add(time.Minute))
 	require.NoError(t, err)
 }

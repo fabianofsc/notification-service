@@ -3,9 +3,11 @@ package http
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -21,6 +23,7 @@ func SendNotificationHandler(deps app.SendNotificationDeps) http.HandlerFunc {
 			writeJSONError(w, http.StatusBadRequest, "invalid request body")
 			return
 		}
+		req.NotificationKey = strings.TrimSpace(r.Header.Get("Idempotency-Key"))
 
 		if err := req.Validate(); err != nil {
 			writeJSONError(w, http.StatusBadRequest, err.Error())
@@ -44,25 +47,24 @@ func SendNotificationHandler(deps app.SendNotificationDeps) http.HandlerFunc {
 			CallbackName:    req.CallbackName,
 		}
 
-		n, err := app.SendNotification(r.Context(), deps, input)
+		result, err := app.SendNotification(r.Context(), deps, input)
 		if err != nil {
 			if err == domain.ErrPayloadMismatch {
 				writeJSONError(w, http.StatusConflict, "payload mismatch")
 				return
 			}
+			if isValidationError(err) {
+				writeJSONError(w, http.StatusBadRequest, fmt.Sprintf("invalid request: %v", err))
+				return
+			}
 			slog.Error("failed to send notification", "error", err)
-			writeJSONError(w, http.StatusBadRequest, fmt.Sprintf("invalid request: %v", err))
+			writeJSONError(w, http.StatusInternalServerError, "internal server error")
 			return
 		}
 
-		status := http.StatusAccepted
-		if n.CreatedAt != n.UpdatedAt {
-			status = http.StatusOK
-		}
-
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(status)
-		json.NewEncoder(w).Encode(NewNotificationResponse(n))
+		w.WriteHeader(http.StatusAccepted)
+		json.NewEncoder(w).Encode(NewNotificationResponse(result.Notification))
 	}
 }
 
@@ -77,7 +79,12 @@ func GetNotificationHandler(deps app.GetNotificationDeps) http.HandlerFunc {
 
 		n, err := app.GetNotification(r.Context(), deps, app.GetNotificationInput{ID: decodedID})
 		if err != nil {
-			writeJSONError(w, http.StatusNotFound, "notification not found")
+			if errors.Is(err, domain.ErrNotificationNotFound) {
+				writeJSONError(w, http.StatusNotFound, "notification not found")
+				return
+			}
+			slog.Error("failed to get notification", "error", err)
+			writeJSONError(w, http.StatusInternalServerError, "internal server error")
 			return
 		}
 
@@ -85,6 +92,15 @@ func GetNotificationHandler(deps app.GetNotificationDeps) http.HandlerFunc {
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(NewNotificationResponse(n))
 	}
+}
+
+func isValidationError(err error) bool {
+	return errors.Is(err, domain.ErrEmptyNotificationKey) ||
+		errors.Is(err, domain.ErrEmptySubject) ||
+		errors.Is(err, domain.ErrEmptyBody) ||
+		errors.Is(err, domain.ErrInvalidChannel) ||
+		errors.Is(err, domain.ErrInvalidRecipient) ||
+		errors.Is(err, domain.ErrEmptyRecipient)
 }
 
 func writeJSONError(w http.ResponseWriter, status int, message string) {

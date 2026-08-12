@@ -74,3 +74,12 @@ func TestComputeFingerprint_NormalizesWhitespace(t *testing.T) {
 
 	require.Equal(t, fp1, fp2)
 }
+
+func TestComputeFingerprint_DistinguishesFieldsContainingDelimiter(t *testing.T) {
+	r := mustRecipient(t, `{"email":"a@example.com"}`)
+
+	first := domain.ComputeFingerprint(domain.ChannelEmail, r, "a|b", "c", "ref", "", "")
+	second := domain.ComputeFingerprint(domain.ChannelEmail, r, "a", "b|c", "ref", "", "")
+
+	require.NotEqual(t, first, second)
+}

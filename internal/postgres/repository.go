@@ -2,11 +2,14 @@ package postgres
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/nexus-shopping/notification-service/internal/app"
 	"github.com/nexus-shopping/notification-service/internal/domain"
 )
 
@@ -18,10 +21,10 @@ func NewRepository(pool *pgxpool.Pool) *Repository {
 	return &Repository{pool: pool}
 }
 
-func (r *Repository) Insert(ctx context.Context, n domain.Notification) (domain.Notification, error) {
+func (r *Repository) Insert(ctx context.Context, n domain.Notification) (app.InsertNotificationResult, error) {
 	search, err := n.Recipient.NormalizedSearch(n.Channel)
 	if err != nil {
-		return domain.Notification{}, err
+		return app.InsertNotificationResult{}, err
 	}
 
 	row := r.pool.QueryRow(ctx,
@@ -39,18 +42,20 @@ func (r *Repository) Insert(ctx context.Context, n domain.Notification) (domain.
 	)
 
 	inserted, scanErr := scanNotification(row)
-	if scanErr != nil {
+	if errors.Is(scanErr, pgx.ErrNoRows) {
 		existing, findErr := r.FindByNotificationKey(ctx, n.NotificationKey)
 		if findErr != nil {
-			return domain.Notification{}, scanErr
+			return app.InsertNotificationResult{}, findErr
 		}
-		return existing, nil
+		return app.InsertNotificationResult{Notification: existing, Replayed: true}, nil
 	}
-	return inserted, nil
+	if scanErr != nil {
+		return app.InsertNotificationResult{}, scanErr
+	}
+	return app.InsertNotificationResult{Notification: inserted}, nil
 }
 
-func (r *Repository) ClaimBatch(ctx context.Context, batchSize int, leaseDuration time.Duration) ([]domain.Notification, error) {
-	now := time.Now()
+func (r *Repository) ClaimBatch(ctx context.Context, batchSize int, leaseDuration time.Duration, now time.Time) ([]domain.Notification, error) {
 	leaseUntil := now.Add(leaseDuration)
 
 	rows, err := r.pool.Query(ctx,
@@ -119,6 +124,9 @@ func (r *Repository) FindByID(ctx context.Context, id uuid.UUID) (domain.Notific
 		FROM notifications WHERE id = $1`, id,
 	)
 	n, err := scanNotification(row)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return domain.Notification{}, domain.ErrNotificationNotFound
+	}
 	if err != nil {
 		return domain.Notification{}, err
 	}
@@ -134,6 +142,9 @@ func (r *Repository) FindByNotificationKey(ctx context.Context, key string) (dom
 		FROM notifications WHERE notification_key = $1`, key,
 	)
 	n, err := scanNotification(row)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return domain.Notification{}, domain.ErrNotificationNotFound
+	}
 	if err != nil {
 		return domain.Notification{}, err
 	}

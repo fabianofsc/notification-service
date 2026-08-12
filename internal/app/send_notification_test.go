@@ -41,8 +41,9 @@ func TestSendNotification_Success(t *testing.T) {
 	deps, _ := newDeps()
 	input := validInput()
 
-	n, err := app.SendNotification(context.Background(), deps, input)
+	result, err := app.SendNotification(context.Background(), deps, input)
 	require.NoError(t, err)
+	n := result.Notification
 	require.Equal(t, "key-1", n.NotificationKey)
 	require.Equal(t, domain.StatusPending, n.Status)
 	require.False(t, n.PayloadFingerprint == "")
@@ -105,9 +106,10 @@ func TestSendNotification_IdempotentSameFingerprint(t *testing.T) {
 		return existing, nil
 	}
 
-	n, err := app.SendNotification(context.Background(), deps, input)
+	result, err := app.SendNotification(context.Background(), deps, input)
 	require.NoError(t, err)
-	require.Equal(t, existing.ID, n.ID)
+	require.Equal(t, existing.ID, result.Notification.ID)
+	require.True(t, result.Replayed)
 }
 
 func TestSendNotification_PayloadMismatch(t *testing.T) {

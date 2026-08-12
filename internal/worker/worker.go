@@ -72,16 +72,15 @@ func (w *Worker) Run(ctx context.Context) error {
 	for {
 		select {
 		case <-ctx.Done():
-			w.processBatch(context.Background())
 			return nil
 		case <-ticker.C:
-			w.processBatch(ctx)
+			w.processBatch(context.WithoutCancel(ctx))
 		}
 	}
 }
 
 func (w *Worker) processBatch(ctx context.Context) {
-	claimed, err := w.notifications.ClaimBatch(ctx, w.batchSize, w.leaseDuration)
+	claimed, err := w.notifications.ClaimBatch(ctx, w.batchSize, w.leaseDuration, w.clock.Now())
 	if err != nil {
 		w.log.Error("claim batch failed", "error", err)
 		return

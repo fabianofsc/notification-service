@@ -43,7 +43,6 @@ Idempotency-Key: order-confirmed:123:attempt-456
 
 ```json
 {
-  "notification_key": "order-confirmed:123:attempt-456",
   "channel": "EMAIL",
   "recipient": {
     "email": "cliente@example.com"
@@ -72,13 +71,13 @@ Idempotency-Key: order-confirmed:123:attempt-456
 ```
 
 **Idempotencia:**
+- `Idempotency-Key` e obrigatorio; `notification_key` e derivada exclusivamente desse cabecalho.
 - Mesma chave + mesmo payload -> `202` com a notificacao existente
 - Mesma chave + payload diferente -> `409 Conflict`
 
 **SMS example:**
 ```json
 {
-  "notification_key": "sms-otp:user:456",
   "channel": "SMS",
   "recipient": {
     "phone_number": "+5511999999999"

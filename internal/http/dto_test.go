@@ -137,11 +137,11 @@ func TestNotificationResponse_Sent(t *testing.T) {
 	id := uuid.MustParse("018c3f4c-a1b2-7000-8000-000000000002")
 	now := time.Date(2026, 8, 11, 12, 0, 0, 0, time.UTC)
 	n := domain.Notification{
-		ID:         id,
-		Channel:    domain.ChannelEmail,
-		Status:     domain.StatusSent,
-		SentAt:     now,
-		CreatedAt:  now,
+		ID:        id,
+		Channel:   domain.ChannelEmail,
+		Status:    domain.StatusSent,
+		SentAt:    now,
+		CreatedAt: now,
 	}
 
 	resp := NewNotificationResponse(n)
@@ -152,12 +152,12 @@ func TestNotificationResponse_Sent(t *testing.T) {
 func TestNotificationResponse_Failed(t *testing.T) {
 	id := uuid.MustParse("018c3f4c-a1b2-7000-8000-000000000003")
 	n := domain.Notification{
-		ID:             id,
-		Channel:        domain.ChannelEmail,
-		Status:         domain.StatusFailed,
-		FailureReason:  "temporary failure",
-		AttemptCount:   3,
-		CreatedAt:      time.Date(2026, 8, 11, 12, 0, 0, 0, time.UTC),
+		ID:            id,
+		Channel:       domain.ChannelEmail,
+		Status:        domain.StatusFailed,
+		FailureReason: "temporary failure",
+		AttemptCount:  3,
+		CreatedAt:     time.Date(2026, 8, 11, 12, 0, 0, 0, time.UTC),
 	}
 
 	resp := NewNotificationResponse(n)

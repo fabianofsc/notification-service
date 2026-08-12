@@ -23,7 +23,7 @@ func ComputeFingerprint(channel Channel, recipient Recipient, subject string, bo
 		normalizedTo = phone
 	}
 
-	canonical := fmt.Sprintf("%s|%s|%s|%s|%s|%s|%s",
+	fields := []string{
 		string(channel),
 		normalizedTo,
 		strings.TrimSpace(subject),
@@ -31,8 +31,12 @@ func ComputeFingerprint(channel Channel, recipient Recipient, subject string, bo
 		strings.TrimSpace(referenceID),
 		strings.TrimSpace(callbackID),
 		strings.TrimSpace(callbackName),
-	)
+	}
+	var canonical strings.Builder
+	for _, field := range fields {
+		fmt.Fprintf(&canonical, "%d:%s", len(field), field)
+	}
 
-	hash := sha256.Sum256([]byte(canonical))
+	hash := sha256.Sum256([]byte(canonical.String()))
 	return fmt.Sprintf("%x", hash)
 }

@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/nexus-shopping/notification-service/internal/app"
 	"github.com/nexus-shopping/notification-service/internal/domain"
 )
 
@@ -17,12 +18,13 @@ type fakeNotificationsRepository struct {
 	findByKeyFn   func(ctx context.Context, key string) (domain.Notification, error)
 }
 
-func (f *fakeNotificationsRepository) Insert(ctx context.Context, n domain.Notification) (domain.Notification, error) {
+func (f *fakeNotificationsRepository) Insert(ctx context.Context, n domain.Notification) (app.InsertNotificationResult, error) {
 	if f.insertFn != nil {
-		return f.insertFn(ctx, n)
+		inserted, err := f.insertFn(ctx, n)
+		return app.InsertNotificationResult{Notification: inserted, Replayed: inserted.ID != n.ID}, err
 	}
 	f.notifications = append(f.notifications, n)
-	return n, nil
+	return app.InsertNotificationResult{Notification: n}, nil
 }
 
 func (f *fakeNotificationsRepository) FindByID(ctx context.Context, id uuid.UUID) (domain.Notification, error) {
@@ -49,7 +51,7 @@ func (f *fakeNotificationsRepository) FindByNotificationKey(ctx context.Context,
 	return domain.Notification{}, domain.ErrNotificationNotFound
 }
 
-func (f *fakeNotificationsRepository) ClaimBatch(ctx context.Context, batchSize int, leaseDuration time.Duration) ([]domain.Notification, error) {
+func (f *fakeNotificationsRepository) ClaimBatch(ctx context.Context, batchSize int, leaseDuration time.Duration, now time.Time) ([]domain.Notification, error) {
 	return nil, fmt.Errorf("not implemented")
 }
 
