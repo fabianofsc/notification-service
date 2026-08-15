@@ -1,0 +1,10 @@
+.git
+.claude
+.agents
+.env
+.env.example
+*.test
+test.bin
+server
+docs/
+.DS_Store
