@@ -3,6 +3,7 @@ name: CI
 on:
   push:
     branches: [main]
+    tags: ["v*"]
   pull_request:
 
 permissions:
@@ -44,7 +45,7 @@ jobs:
 
   publish-image:
     needs: test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))
     environment: production
     runs-on: ubuntu-latest
 
@@ -64,4 +65,4 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Publish image
-        run: make docker-push
+        run: make docker-push TAG=${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'latest' }}

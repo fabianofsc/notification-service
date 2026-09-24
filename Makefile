@@ -1,6 +1,7 @@
 .PHONY: test lint run db-up db-down clean docker-push
 
 DOCKER_IMAGE ?= fabianofsc/notification-service
+TAG ?= latest
 
 SHELL := /bin/bash
 
@@ -20,10 +21,11 @@ db-up:
 db-down:
 	docker compose down
 
-# docker-push publishes a multi-architecture manifest for the fixed latest tag.
+# docker-push publishes a multi-architecture manifest for $(TAG) (defaults to
+# latest).
 # Run `docker login` before invoking this target.
 docker-push:
-	docker buildx build --platform linux/amd64,linux/arm64 --push -t $(DOCKER_IMAGE):latest .
+	docker buildx build --platform linux/amd64,linux/arm64 --push -t $(DOCKER_IMAGE):$(TAG) .
 
 clean:
 	rm -f notification-service
